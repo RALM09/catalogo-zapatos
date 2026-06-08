@@ -1,8 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY  // service key para escritura
+  'https://qsrnvaxoogtvxkkfgxmi.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcm52YXhvb2d0dnhra2ZneG1pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDkxOTg2NSwiZXhwIjoyMDk2NDk1ODY1fQ.w3PmWe9tjWVtRmlJPck8ocOGPDmZgFfaJgt__ZvC53M'
 );
 
 exports.handler = async (event) => {
@@ -12,15 +12,9 @@ exports.handler = async (event) => {
     'Content-Type': 'application/json'
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Metodo no permitido' }) };
 
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Metodo no permitido' }) };
-  }
-
-  // Verificar password de admin
   const auth = event.headers['authorization'] || '';
   if (auth !== 'Bearer ' + process.env.ADMIN_PASSWORD) {
     return { statusCode: 401, headers, body: JSON.stringify({ error: 'No autorizado' }) };
@@ -34,15 +28,13 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Seccion y marca son requeridos' }) };
     }
 
-    // Subir imagenes a Supabase Storage
     const imageUrls = [];
     for (let i = 0; i < (imagenes || []).length; i++) {
-      const imgData = imagenes[i]; // base64 string
-      const base64 = imgData.replace(/^data:image\/\w+;base64,/, '');
+      const base64 = imagenes[i].replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64, 'base64');
-      const fileName = `${Date.now()}_${i}.jpg`;
+      const fileName = Date.now() + '_' + i + '.jpg';
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('imagenes-productos')
         .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: false });
 
@@ -55,33 +47,15 @@ exports.handler = async (event) => {
       imageUrls.push(urlData.publicUrl);
     }
 
-    // Insertar producto en la base de datos
     const { data, error } = await supabase
       .from('productos')
-      .insert([{
-        seccion,
-        marca,
-        talla: talla || '',
-        codigo: codigo || '',
-        precio: precio || '',
-        imagenes: imageUrls,
-        disponible: true
-      }])
+      .insert([{ seccion, marca, talla: talla||'', codigo: codigo||'', precio: precio||'', imagenes: imageUrls, disponible: true }])
       .select()
       .single();
 
     if (error) throw error;
-
-    return {
-      statusCode: 201,
-      headers,
-      body: JSON.stringify(data)
-    };
+    return { statusCode: 201, headers, body: JSON.stringify(data) };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
