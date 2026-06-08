@@ -3,52 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin - Catalogo de Zapatos</title>
+<title>Admin - Collection Fe & Style</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root { --purple:#7b2ff7; --pink:#f953c6; --dark:#1a0533; --green:#25d366; --red:#e53935; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'Nunito',sans-serif; background:#f4eeff; color:#2d1b4e; min-height:100vh; }
 
-  /* LOGIN */
   .login-screen { position:fixed; inset:0; background:linear-gradient(135deg,#7b2ff7,#f953c6); display:flex; align-items:center; justify-content:center; z-index:999; }
   .login-box { background:white; border-radius:24px; padding:40px 36px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
-  .login-box h1 { font-family:'Pacifico',cursive; font-size:1.8rem; color:var(--purple); margin-bottom:8px; }
+  .login-box h1 { font-family:'Pacifico',cursive; font-size:1.8rem; color:var(--purple); margin-bottom:6px; }
   .login-box p { color:#888; font-size:0.9rem; margin-bottom:28px; }
   .login-input { width:100%; padding:14px 18px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:1rem; outline:none; margin-bottom:14px; }
   .login-input:focus { border-color:var(--purple); }
   .login-btn { width:100%; padding:14px; border-radius:50px; border:none; background:linear-gradient(135deg,var(--purple),var(--pink)); color:white; font-family:'Nunito',sans-serif; font-weight:900; font-size:1rem; cursor:pointer; }
   .login-error { color:var(--red); font-size:0.85rem; margin-top:10px; display:none; }
 
-  /* HEADER */
-  .admin-header { background:linear-gradient(135deg,var(--dark),#3b1278); padding:18px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .admin-header { background:linear-gradient(135deg,var(--dark),#3b1278); padding:18px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
   .admin-header h1 { font-family:'Pacifico',cursive; color:white; font-size:1.4rem; }
   .header-actions { display:flex; gap:10px; align-items:center; }
-  .btn { padding:9px 20px; border-radius:50px; border:none; font-family:'Nunito',sans-serif; font-weight:800; font-size:0.85rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+  .btn { padding:9px 20px; border-radius:50px; border:none; font-family:'Nunito',sans-serif; font-weight:800; font-size:0.85rem; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
   .btn-primary { background:linear-gradient(135deg,var(--purple),var(--pink)); color:white; }
   .btn-outline { background:transparent; border:2px solid rgba(255,255,255,0.5); color:white; }
   .btn-outline:hover { background:rgba(255,255,255,0.1); }
   .btn-danger { background:var(--red); color:white; }
   .btn-success { background:var(--green); color:white; }
+  .btn-gray { background:#f0f0f0; color:#555; }
   .btn-sm { padding:6px 14px; font-size:0.78rem; }
 
-  /* STATS */
   .stats-row { display:flex; gap:14px; padding:20px; flex-wrap:wrap; }
   .stat-card { background:white; border-radius:16px; padding:16px 20px; flex:1; min-width:120px; box-shadow:0 2px 12px rgba(123,47,247,0.08); }
   .stat-num { font-size:2rem; font-weight:900; color:var(--purple); }
   .stat-label { font-size:0.8rem; color:#888; font-weight:600; margin-top:2px; }
 
-  /* FILTERS */
   .admin-filters { background:white; padding:14px 20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
   .filter-select { padding:8px 14px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.85rem; outline:none; cursor:pointer; }
-  .filter-select:focus { border-color:var(--purple); }
-  .search-input { flex:1; min-width:200px; padding:8px 16px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.9rem; outline:none; }
-  .search-input:focus { border-color:var(--purple); }
+  .search-input { flex:1; min-width:180px; padding:8px 16px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.9rem; outline:none; }
+  .search-input:focus, .filter-select:focus { border-color:var(--purple); }
 
-  /* PRODUCTS TABLE */
   .products-section { padding:16px 20px; }
   .products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
-  .admin-card { background:white; border-radius:18px; overflow:hidden; box-shadow:0 2px 14px rgba(123,47,247,0.08); position:relative; transition:box-shadow 0.2s; }
+  .admin-card { background:white; border-radius:18px; overflow:hidden; box-shadow:0 2px 14px rgba(123,47,247,0.08); position:relative; }
   .admin-card.agotado { opacity:0.55; }
   .admin-card-img { width:100%; aspect-ratio:1/1; background:#f8f4ff; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .admin-card-img img { width:100%; height:100%; object-fit:contain; }
@@ -61,7 +57,6 @@
   .agotado-badge { position:absolute; top:10px; left:10px; background:var(--red); color:white; font-size:0.65rem; font-weight:900; padding:3px 8px; border-radius:20px; }
   .img-count { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); color:white; font-size:0.65rem; font-weight:700; padding:3px 7px; border-radius:20px; }
 
-  /* MODAL ADD */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,2,25,0.88); z-index:500; align-items:center; justify-content:center; padding:16px; }
   .modal-overlay.open { display:flex; }
   .modal-box { background:white; border-radius:24px; max-width:540px; width:100%; max-height:92vh; overflow-y:auto; padding:28px; animation:popIn 0.25s ease; }
@@ -71,10 +66,7 @@
   .form-group label { display:block; font-weight:700; font-size:0.85rem; margin-bottom:6px; color:#555; }
   .form-control { width:100%; padding:11px 16px; border-radius:12px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.95rem; outline:none; transition:border-color 0.2s; }
   .form-control:focus { border-color:var(--purple); }
-  select.form-control { cursor:pointer; }
   .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-
-  /* IMAGE UPLOAD */
   .img-upload-area { border:2px dashed #c4b5f5; border-radius:14px; padding:24px; text-align:center; cursor:pointer; transition:all 0.2s; background:#faf8ff; }
   .img-upload-area:hover { border-color:var(--purple); background:#f3eeff; }
   .img-upload-area input { display:none; }
@@ -83,18 +75,15 @@
   .img-preview-item { position:relative; width:80px; height:80px; border-radius:10px; overflow:hidden; border:2px solid #e0d5f5; }
   .img-preview-item img { width:100%; height:100%; object-fit:cover; }
   .img-preview-item .remove-img { position:absolute; top:2px; right:2px; background:var(--red); color:white; border:none; width:18px; height:18px; border-radius:50%; font-size:0.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:900; }
-
   .form-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:22px; }
-  .btn-cancel { background:#f0f0f0; color:#666; padding:11px 24px; border-radius:50px; border:none; font-family:'Nunito',sans-serif; font-weight:700; cursor:pointer; }
 
-  /* TOAST */
-  .toast { position:fixed; bottom:24px; right:24px; background:#1a0533; color:white; padding:14px 22px; border-radius:14px; font-weight:700; font-size:0.9rem; z-index:9999; transform:translateY(80px); opacity:0; transition:all 0.3s; pointer-events:none; }
+  .toast { position:fixed; bottom:24px; right:24px; background:#1a0533; color:white; padding:14px 22px; border-radius:14px; font-weight:700; font-size:0.9rem; z-index:9999; transform:translateY(80px); opacity:0; transition:all 0.3s; pointer-events:none; max-width:300px; }
   .toast.show { transform:translateY(0); opacity:1; }
   .toast.success { background:#1b5e20; }
   .toast.error { background:#b71c1c; }
 
-  .empty-state { text-align:center; padding:60px 20px; color:#bbb; grid-column:1/-1; }
-  .spinner { display:inline-block; width:18px; height:18px; border:3px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
+  .empty-state { text-align:center; padding:60px 20px; color:#bbb; grid-column:1/-1; font-size:1rem; }
+  .spinner { display:inline-block; width:16px; height:16px; border:3px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
   @keyframes spin { to{transform:rotate(360deg);} }
 
   @media(max-width:600px){
@@ -107,28 +96,27 @@
 </head>
 <body>
 
-<!-- LOGIN -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
     <h1>Admin</h1>
-    <p>Panel de administracion del catalogo</p>
-    <input type="password" class="login-input" id="passwordInput" placeholder="Contrasena de administrador" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="login-btn" onclick="doLogin()">Entrar</button>
-    <p class="login-error" id="loginError">Contrasena incorrecta</p>
+    <p>Ingresa con tu correo y contrasena de Supabase</p>
+    <input type="email" class="login-input" id="emailInput" placeholder="Correo electronico">
+    <input type="password" class="login-input" id="passwordInput" placeholder="Contrasena" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Entrar</button>
+    <p class="login-error" id="loginError">Correo o contrasena incorrectos</p>
   </div>
 </div>
 
-<!-- HEADER -->
 <div class="admin-header">
   <h1>Admin Catalogo</h1>
   <div class="header-actions">
     <a href="/" class="btn btn-outline">Ver catalogo</a>
     <button class="btn btn-primary" onclick="openAddModal()">+ Agregar producto</button>
+    <button class="btn btn-gray btn-sm" onclick="doLogout()">Salir</button>
   </div>
 </div>
 
-<!-- STATS -->
-<div class="stats-row" id="statsRow">
+<div class="stats-row">
   <div class="stat-card"><div class="stat-num" id="statTotal">-</div><div class="stat-label">Total productos</div></div>
   <div class="stat-card"><div class="stat-num" id="statDama">-</div><div class="stat-label">Dama</div></div>
   <div class="stat-card"><div class="stat-num" id="statCab">-</div><div class="stat-label">Caballero</div></div>
@@ -136,7 +124,6 @@
   <div class="stat-card"><div class="stat-num" id="statAgotado">-</div><div class="stat-label">Agotados</div></div>
 </div>
 
-<!-- FILTERS -->
 <div class="admin-filters">
   <input type="text" class="search-input" id="adminSearch" placeholder="Buscar producto..." oninput="filterProducts()">
   <select class="filter-select" id="filterSeccion" onchange="filterProducts()">
@@ -154,14 +141,12 @@
   </select>
 </div>
 
-<!-- PRODUCTS -->
 <div class="products-section">
   <div class="products-grid" id="adminGrid">
-    <div class="empty-state">Cargando productos<span class="spinner" style="margin-left:8px"></span></div>
+    <div class="empty-state">Inicia sesion para ver los productos</div>
   </div>
 </div>
 
-<!-- MODAL AGREGAR PRODUCTO -->
 <div class="modal-overlay" id="addModal" onclick="closeAddModal(event)">
   <div class="modal-box" onclick="event.stopPropagation()">
     <h2>Agregar producto</h2>
@@ -205,7 +190,7 @@
       <div class="img-previews" id="imgPreviews"></div>
     </div>
     <div class="form-actions">
-      <button class="btn-cancel" onclick="document.getElementById('addModal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-gray" onclick="document.getElementById('addModal').classList.remove('open')">Cancelar</button>
       <button class="btn btn-primary" id="saveBtn" onclick="saveProduct()">Guardar producto</button>
     </div>
   </div>
@@ -214,33 +199,60 @@
 <div class="toast" id="toast"></div>
 
 <script>
-var ADMIN_PASSWORD = '';
+var SUPABASE_URL = 'https://qsrnvaxoogtvxkkfgxmi.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcm52YXhvb2d0dnhra2ZneG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTk4NjUsImV4cCI6MjA5NjQ5NTg2NX0.0CUHnoTPu41GjTU_Epd_g3Jmun4lXMHoWn_HqirROPA';
+
+var db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 var allProducts = [];
-var pendingImages = []; // {dataUrl, file}
+var pendingImages = [];
 
 // ---- LOGIN ----
 function doLogin() {
-  var pwd = document.getElementById('passwordInput').value;
-  if (!pwd) return;
-  // Validar contra la API
-  fetch('/api/get-products', { headers: { 'Authorization': 'Bearer ' + pwd } })
-    .then(function(r) {
-      if (r.status === 401) throw new Error('wrong');
-      return r.json();
-    })
-    .then(function(data) {
-      ADMIN_PASSWORD = pwd;
+  var email = document.getElementById('emailInput').value.trim();
+  var password = document.getElementById('passwordInput').value;
+  if (!email || !password) return;
+  var btn = document.getElementById('loginBtn');
+  btn.innerHTML = '<span class="spinner"></span> Entrando...';
+  btn.disabled = true;
+
+  db.auth.signInWithPassword({ email: email, password: password })
+    .then(function(res) {
+      if (res.error) throw res.error;
       document.getElementById('loginScreen').style.display = 'none';
-      allProducts = data;
-      renderStats();
-      renderAdminCards(data);
+      loadProducts();
     })
-    .catch(function() {
+    .catch(function(err) {
       document.getElementById('loginError').style.display = 'block';
+      btn.innerHTML = 'Entrar';
+      btn.disabled = false;
     });
 }
 
-// ---- STATS ----
+function doLogout() {
+  db.auth.signOut().then(function() {
+    location.reload();
+  });
+}
+
+// Verificar si ya habia sesion activa
+db.auth.getSession().then(function(res) {
+  if (res.data && res.data.session) {
+    document.getElementById('loginScreen').style.display = 'none';
+    loadProducts();
+  }
+});
+
+// ---- CARGAR PRODUCTOS ----
+function loadProducts() {
+  db.from('productos').select('*').order('created_at', {ascending: false})
+    .then(function(res) {
+      if (res.error) { showToast('Error: ' + res.error.message, 'error'); return; }
+      allProducts = res.data;
+      renderStats();
+      filterProducts();
+    });
+}
+
 function renderStats() {
   document.getElementById('statTotal').textContent = allProducts.length;
   document.getElementById('statDama').textContent = allProducts.filter(function(p){ return p.seccion==='dama'; }).length;
@@ -249,25 +261,19 @@ function renderStats() {
   document.getElementById('statAgotado').textContent = allProducts.filter(function(p){ return !p.disponible; }).length;
 }
 
-// ---- RENDER CARDS ----
+// ---- RENDER ----
 function renderAdminCards(products) {
   var grid = document.getElementById('adminGrid');
   grid.innerHTML = '';
-  if (!products.length) {
-    grid.innerHTML = '<div class="empty-state">No hay productos</div>';
-    return;
-  }
+  if (!products.length) { grid.innerHTML = '<div class="empty-state">No hay productos</div>'; return; }
   products.forEach(function(p) {
     var card = document.createElement('div');
     card.className = 'admin-card' + (p.disponible ? '' : ' agotado');
-    var imgSrc = (p.imagenes && p.imagenes.length > 0) ? p.imagenes[0] : 'https://placehold.co/300x300?text=Sin+imagen';
+    var imgSrc = (p.imagenes && p.imagenes.length > 0) ? p.imagenes[0] : 'https://placehold.co/300x300/f4eeff/7b2ff7?text=Sin+imagen';
     var imgCount = (p.imagenes && p.imagenes.length > 1) ? '<div class="img-count">' + p.imagenes.length + ' fotos</div>' : '';
     var agotadoBadge = !p.disponible ? '<div class="agotado-badge">AGOTADO</div>' : '';
     card.innerHTML =
-      '<div class="admin-card-img">' +
-        '<img src="' + imgSrc + '" alt="' + (p.marca||'') + '" loading="lazy">' +
-        agotadoBadge + imgCount +
-      '</div>' +
+      '<div class="admin-card-img"><img src="' + imgSrc + '" alt="" loading="lazy">' + agotadoBadge + imgCount + '</div>' +
       '<div class="admin-card-body">' +
         '<div class="admin-card-marca">' + (p.seccion||'') + ' &bull; ' + (p.marca||'') + '</div>' +
         (p.talla ? '<div class="admin-card-talla">Talla ' + p.talla + '</div>' : '') +
@@ -275,155 +281,151 @@ function renderAdminCards(products) {
         (p.precio ? '<div class="admin-card-precio">' + p.precio + '</div>' : '') +
         '<div class="admin-card-actions">' +
           '<button class="btn btn-sm ' + (p.disponible ? 'btn-danger' : 'btn-success') + '" onclick="toggleDisp(\'' + p.id + '\',' + !p.disponible + ')">' +
-            (p.disponible ? 'Marcar agotado' : 'Marcar disponible') +
+            (p.disponible ? 'Marcar agotado' : 'Disponible') +
           '</button>' +
-          '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')">Eliminar</button>' +
+          '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\',this)">Eliminar</button>' +
         '</div>' +
       '</div>';
     grid.appendChild(card);
   });
 }
 
-// ---- FILTER ----
 function filterProducts() {
   var q = document.getElementById('adminSearch').value.toLowerCase();
   var sec = document.getElementById('filterSeccion').value;
   var disp = document.getElementById('filterDisp').value;
   var filtered = allProducts.filter(function(p) {
-    var matchQ = !q || (p.codigo||'').toLowerCase().indexOf(q)>=0 || (p.marca||'').toLowerCase().indexOf(q)>=0 || (p.talla||'').toLowerCase().indexOf(q)>=0;
-    var matchSec = !sec || p.seccion === sec;
-    var matchDisp = !disp || (disp==='disponible' ? p.disponible : !p.disponible);
-    return matchQ && matchSec && matchDisp;
+    var mQ = !q || (p.codigo||'').toLowerCase().indexOf(q)>=0 || (p.marca||'').toLowerCase().indexOf(q)>=0 || (p.talla||'').toLowerCase().indexOf(q)>=0;
+    var mS = !sec || p.seccion===sec;
+    var mD = !disp || (disp==='disponible' ? p.disponible : !p.disponible);
+    return mQ && mS && mD;
   });
   renderAdminCards(filtered);
 }
 
-// ---- IMAGE UPLOAD ----
+// ---- IMAGENES ----
 function handleImages(event) {
-  var files = Array.from(event.target.files);
-  files.forEach(function(file) {
+  Array.from(event.target.files).forEach(function(file) {
     var reader = new FileReader();
-    reader.onload = function(e) {
-      pendingImages.push({ dataUrl: e.target.result, file: file });
-      renderPreviews();
-    };
+    reader.onload = function(e) { pendingImages.push({dataUrl: e.target.result, file: file}); renderPreviews(); };
     reader.readAsDataURL(file);
   });
   event.target.value = '';
 }
-
 function renderPreviews() {
-  var container = document.getElementById('imgPreviews');
-  container.innerHTML = '';
+  var c = document.getElementById('imgPreviews');
+  c.innerHTML = '';
   pendingImages.forEach(function(img, i) {
     var div = document.createElement('div');
     div.className = 'img-preview-item';
     div.innerHTML = '<img src="' + img.dataUrl + '"><button class="remove-img" onclick="removeImg(' + i + ')">x</button>';
-    container.appendChild(div);
+    c.appendChild(div);
   });
 }
-
-function removeImg(i) {
-  pendingImages.splice(i, 1);
-  renderPreviews();
-}
+function removeImg(i) { pendingImages.splice(i,1); renderPreviews(); }
 
 // ---- ADD MODAL ----
 function openAddModal() {
-  document.getElementById('fSeccion').value = 'dama';
-  document.getElementById('fMarca').value = '';
-  document.getElementById('fTalla').value = '';
-  document.getElementById('fCodigo').value = '';
-  document.getElementById('fPrecio').value = '';
-  pendingImages = [];
+  document.getElementById('fSeccion').value='dama';
+  document.getElementById('fMarca').value='';
+  document.getElementById('fTalla').value='';
+  document.getElementById('fCodigo').value='';
+  document.getElementById('fPrecio').value='';
+  pendingImages=[];
   renderPreviews();
   document.getElementById('addModal').classList.add('open');
 }
+function closeAddModal(e) { if(e.target===document.getElementById('addModal')){ document.getElementById('addModal').classList.remove('open'); } }
 
-function closeAddModal(e) {
-  if (e.target === document.getElementById('addModal')) {
-    document.getElementById('addModal').classList.remove('open');
-  }
-}
-
-// ---- SAVE PRODUCT ----
-function saveProduct() {
+// ---- GUARDAR ----
+async function saveProduct() {
   var marca = document.getElementById('fMarca').value.trim();
   var seccion = document.getElementById('fSeccion').value;
   if (!marca) { showToast('La marca es requerida', 'error'); return; }
 
   var btn = document.getElementById('saveBtn');
-  btn.innerHTML = '<span class="spinner"></span>Guardando...';
+  btn.innerHTML = '<span class="spinner"></span> Guardando...';
   btn.disabled = true;
 
-  var payload = {
-    seccion: seccion,
-    marca: marca,
-    talla: document.getElementById('fTalla').value.trim(),
-    codigo: document.getElementById('fCodigo').value.trim(),
-    precio: document.getElementById('fPrecio').value.trim(),
-    imagenes: pendingImages.map(function(img){ return img.dataUrl; })
-  };
+  try {
+    // Subir imagenes al storage
+    var imageUrls = [];
+    for (var i = 0; i < pendingImages.length; i++) {
+      var img = pendingImages[i];
+      var base64 = img.dataUrl.split(',')[1];
+      var byteArr = Uint8Array.from(atob(base64), function(c){ return c.charCodeAt(0); });
+      var blob = new Blob([byteArr], {type: 'image/jpeg'});
+      var fileName = Date.now() + '_' + i + '.jpg';
 
-  fetch('/api/add-product', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_PASSWORD },
-    body: JSON.stringify(payload)
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.error) throw new Error(data.error);
-    allProducts.unshift(data);
+      var uploadRes = await db.storage.from('imagenes-productos').upload(fileName, blob, {contentType:'image/jpeg', upsert:false});
+      if (uploadRes.error) throw uploadRes.error;
+
+      var urlRes = db.storage.from('imagenes-productos').getPublicUrl(fileName);
+      imageUrls.push(urlRes.data.publicUrl);
+    }
+
+    // Insertar en BD
+    var insertRes = await db.from('productos').insert([{
+      seccion: seccion,
+      marca: marca,
+      talla: document.getElementById('fTalla').value.trim(),
+      codigo: document.getElementById('fCodigo').value.trim(),
+      precio: document.getElementById('fPrecio').value.trim(),
+      imagenes: imageUrls,
+      disponible: true
+    }]).select().single();
+
+    if (insertRes.error) throw insertRes.error;
+
+    allProducts.unshift(insertRes.data);
     renderStats();
     filterProducts();
     document.getElementById('addModal').classList.remove('open');
     showToast('Producto agregado correctamente', 'success');
-  })
-  .catch(function(err) {
+  } catch(err) {
     showToast('Error: ' + err.message, 'error');
-  })
-  .finally(function() {
+  } finally {
     btn.innerHTML = 'Guardar producto';
     btn.disabled = false;
-  });
+  }
 }
 
-// ---- TOGGLE DISPONIBLE ----
+// ---- TOGGLE ----
 function toggleDisp(id, disponible) {
-  fetch('/api/toggle-product', {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_PASSWORD },
-    body: JSON.stringify({ id: id, disponible: disponible })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.error) throw new Error(data.error);
-    var idx = allProducts.findIndex(function(p){ return p.id === id; });
-    if (idx >= 0) allProducts[idx].disponible = disponible;
-    renderStats();
-    filterProducts();
-    showToast(disponible ? 'Producto marcado como disponible' : 'Producto marcado como agotado', 'success');
-  })
-  .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+  db.from('productos').update({disponible: disponible}).eq('id', id).select().single()
+    .then(function(res) {
+      if (res.error) { showToast('Error: ' + res.error.message, 'error'); return; }
+      var idx = allProducts.findIndex(function(p){ return p.id===id; });
+      if (idx>=0) allProducts[idx].disponible = disponible;
+      renderStats();
+      filterProducts();
+      showToast(disponible ? 'Marcado como disponible' : 'Marcado como agotado', 'success');
+    });
 }
 
-// ---- DELETE ----
-function deleteProduct(id) {
-  if (!confirm('Seguro que quieres eliminar este producto? Esta accion no se puede deshacer.')) return;
-  fetch('/api/delete-product', {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_PASSWORD },
-    body: JSON.stringify({ id: id })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.error) throw new Error(data.error);
-    allProducts = allProducts.filter(function(p){ return p.id !== id; });
+// ---- ELIMINAR ----
+function deleteProduct(id, btn) {
+  if (!confirm('Eliminar este producto? Esta accion no se puede deshacer.')) return;
+  btn.textContent = '...';
+  btn.disabled = true;
+
+  // Obtener imagenes para borrar del storage
+  var prod = allProducts.find(function(p){ return p.id===id; });
+  var deleteImgs = Promise.resolve();
+  if (prod && prod.imagenes && prod.imagenes.length > 0) {
+    var fileNames = prod.imagenes.map(function(url){ return url.split('/').pop(); });
+    deleteImgs = db.storage.from('imagenes-productos').remove(fileNames);
+  }
+
+  deleteImgs.then(function() {
+    return db.from('productos').delete().eq('id', id);
+  }).then(function(res) {
+    if (res.error) { showToast('Error: ' + res.error.message, 'error'); return; }
+    allProducts = allProducts.filter(function(p){ return p.id!==id; });
     renderStats();
     filterProducts();
     showToast('Producto eliminado', 'success');
-  })
-  .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+  });
 }
 
 // ---- TOAST ----
@@ -431,7 +433,7 @@ function showToast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show ' + (type||'');
-  setTimeout(function(){ t.className = 'toast'; }, 3000);
+  setTimeout(function(){ t.className='toast'; }, 3500);
 }
 </script>
 </body>
