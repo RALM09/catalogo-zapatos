@@ -1,0 +1,8 @@
+{
+  "name": "catalogo-zapatos",
+  "version": "1.0.0",
+  "description": "Catalogo de zapatos con panel de administracion",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
