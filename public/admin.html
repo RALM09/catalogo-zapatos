@@ -40,7 +40,12 @@
   .btn-danger { background:var(--red); color:white; }
   .btn-success { background:var(--green); color:white; }
   .btn-gray { background:#f0f0f0; color:#555; }
-  .btn-warn { background:#ff6f00; color:white; }
+  .btn-edit   { background:#e3f2fd; color:#1565c0; border:1.5px solid #90caf9; }
+  .btn-edit:hover { background:#1565c0; color:white; }
+  .btn-stock  { background:#fff3e0; color:#e65100; border:1.5px solid #ffcc80; }
+  .btn-stock:hover { background:#e65100; color:white; }
+  .btn-delete { background:#fce4ec; color:#c62828; border:1.5px solid #ef9a9a; font-size:1rem; padding:5px 10px; }
+  .btn-delete:hover { background:#c62828; color:white; }
   .btn-sm { padding:5px 12px; font-size:0.75rem; }
 
   /* STATS */
@@ -555,7 +560,9 @@ function toggleDisp(id, disponible) {
   });
 }
 function deleteProduct(id) {
-  if(!confirm('Eliminar este producto?')) return;
+  var prod = allProducts.find(function(p){return p.id===id;});
+  var label = prod ? (prod.marca||'')+(prod.talla?' Talla '+prod.talla:'')+(prod.codigo?' ('+prod.codigo+')':'') : 'este producto';
+  if(!confirm('Seguro que quieres eliminar "'+label+'"?\n\nEsta accion no se puede deshacer y borrara las fotos tambien.')) return;
   var prod = allProducts.find(function(p){return p.id===id;});
   var del = Promise.resolve();
   if(prod&&prod.imagenes&&prod.imagenes.length>0){
