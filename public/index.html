@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catalogo de Zapatos 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+  :root { --pink:#f953c6; --purple:#7b2ff7; --dark:#1a0533; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Nunito',sans-serif; background:#f4eeff; color:#2d1b4e; min-height:100vh; }
+
+  .hero { background:linear-gradient(135deg,#7b2ff7 0%,#f953c6 50%,#f9a825 100%); padding:60px 20px 80px; text-align:center; position:relative; overflow:hidden; }
+  .hero::before { content:''; position:absolute; width:400px; height:400px; background:rgba(255,255,255,0.08); border-radius:50%; top:-100px; right:-100px; }
+  .hero-title { font-family:'Pacifico',cursive; font-size:clamp(2.5rem,8vw,4.5rem); color:white; text-shadow:3px 4px 0 rgba(0,0,0,0.2); line-height:1.1; position:relative; z-index:1; }
+  .hero-subtitle { color:rgba(255,255,255,0.9); font-size:1.1rem; font-weight:600; margin-top:12px; letter-spacing:2px; text-transform:uppercase; position:relative; z-index:1; }
+  .hero-badge { display:inline-block; background:white; color:var(--purple); font-weight:900; font-size:0.85rem; padding:6px 18px; border-radius:50px; margin-top:20px; position:relative; z-index:1; }
+
+  .filters-section { background:white; padding:16px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; box-shadow:0 4px 20px rgba(123,47,247,0.1); position:sticky; top:0; z-index:100; }
+  .filter-row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .filter-btn { padding:8px 18px; border-radius:50px; border:2px solid #e0d5f5; background:white; color:#2d1b4e; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s; }
+  .filter-btn:hover { border-color:var(--purple); color:var(--purple); }
+  .filter-btn.active { background:linear-gradient(135deg,var(--purple),var(--pink)); border-color:transparent; color:white; }
+  .search-box { width:100%; max-width:360px; padding:10px 20px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.95rem; outline:none; transition:border-color 0.2s; }
+  .search-box:focus { border-color:var(--purple); }
+  .stats-bar { padding:14px 20px; text-align:center; color:var(--purple); font-weight:700; font-size:0.9rem; }
+
+  .products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:20px; padding:20px; max-width:1400px; margin:0 auto; }
+  .product-card { background:white; border-radius:20px; overflow:hidden; box-shadow:0 4px 20px rgba(123,47,247,0.08); transition:transform 0.25s,box-shadow 0.25s; cursor:pointer; position:relative; }
+  .product-card:hover { transform:translateY(-6px); box-shadow:0 12px 40px rgba(123,47,247,0.2); }
+  .card-img-wrap { width:100%; aspect-ratio:1/1; overflow:hidden; background:#f8f4ff; display:flex; align-items:center; justify-content:center; }
+  .card-img-wrap img { width:100%; height:100%; object-fit:contain; transition:transform 0.3s; }
+  .product-card:hover .card-img-wrap img { transform:scale(1.05); }
+  .card-info { padding:14px 16px 16px; display:flex; flex-direction:column; gap:5px; }
+  .card-marca { font-size:0.72rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--purple); }
+  .card-talla { font-size:1rem; font-weight:800; }
+  .card-codigo { font-size:0.8rem; color:#888; font-weight:600; }
+  .card-precio { font-size:1.3rem; font-weight:900; color:#e53935; margin-top:4px; }
+  .card-badge { position:absolute; top:12px; right:12px; background:linear-gradient(135deg,var(--purple),var(--pink)); color:white; font-size:0.7rem; font-weight:900; padding:4px 10px; border-radius:50px; }
+  .whatsapp-btn { display:flex; align-items:center; gap:8px; background:#25d366; color:white; font-weight:800; font-size:0.85rem; padding:9px 16px; border-radius:50px; text-decoration:none; margin-top:6px; justify-content:center; transition:background 0.2s; }
+  .whatsapp-btn:hover { background:#1ebe5b; }
+
+  /* MODAL */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,2,25,0.92); z-index:1000; align-items:center; justify-content:center; padding:16px; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:white; border-radius:28px; max-width:500px; width:100%; position:relative; animation:popIn 0.28s cubic-bezier(0.34,1.56,0.64,1); max-height:92vh; overflow-y:auto; }
+  @keyframes popIn { from{transform:scale(0.8) translateY(20px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+  .modal-close { position:absolute; top:14px; right:14px; background:rgba(0,0,0,0.35); border:none; color:white; font-size:1.1rem; width:34px; height:34px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; font-weight:900; }
+
+  .carousel-area { position:relative; background:#f8f4ff; border-radius:20px 20px 0 0; overflow:hidden; }
+  .carousel-img-wrap { width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; }
+  #carouselImg { width:100%; height:100%; object-fit:contain; transition:opacity 0.15s ease; }
+  .carousel-btn { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.92); border:none; width:38px; height:38px; border-radius:50%; font-size:1.1rem; cursor:pointer; display:none; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,0.15); z-index:5; }
+  #prevBtn { left:10px; }
+  #nextBtn { right:10px; }
+  .carousel-counter { position:absolute; bottom:10px; right:12px; background:rgba(0,0,0,0.4); color:white; font-size:0.72rem; font-weight:700; padding:3px 9px; border-radius:20px; }
+  .carousel-dots { display:flex; justify-content:center; gap:6px; padding:10px 0 2px; min-height:24px; }
+  .dot { width:8px; height:8px; border-radius:50%; border:none; background:#ddd; cursor:pointer; transition:all 0.2s; padding:0; }
+  .dot.active { background:var(--purple); transform:scale(1.35); }
+
+  .modal-info { padding:18px 22px 24px; }
+  .modal-marca { font-size:0.75rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--purple); }
+  .modal-talla { font-size:1.4rem; font-weight:900; margin:4px 0 2px; }
+  .modal-codigo { font-size:0.9rem; color:#777; font-weight:600; }
+  .modal-precio { font-size:1.8rem; font-weight:900; color:#e53935; margin:8px 0 0; }
+
+  .loading { text-align:center; padding:80px 20px; color:var(--purple); font-size:1.1rem; font-weight:700; grid-column:1/-1; }
+  .loading::after { content:''; display:inline-block; width:20px; height:20px; border:3px solid var(--purple); border-top-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite; margin-left:10px; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .no-results { text-align:center; padding:60px 20px; color:#bbb; font-size:1.1rem; display:none; grid-column:1/-1; }
+
+  footer { text-align:center; padding:40px 20px; background:var(--dark); color:rgba(255,255,255,0.6); font-size:0.85rem; margin-top:40px; }
+  footer strong { color:white; }
+  @media(max-width:600px){
+    .products-grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:10px;}
+    .filter-btn{font-size:0.75rem;padding:6px 10px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-title">Catalogo 2026</div>
+  <div class="hero-subtitle">Calzado &amp; Lociones</div>
+  <div class="hero-badge">Inventario Actualizado</div>
+</div>
+
+<div class="filters-section">
+  <input type="text" class="search-box" id="searchInput" placeholder="Buscar por codigo, talla o marca...">
+  <div class="filter-row">
+    <button class="filter-btn active" data-section="all">Todos</button>
+    <button class="filter-btn" data-section="dama">Dama</button>
+    <button class="filter-btn" data-section="caballero">Caballero</button>
+    <button class="filter-btn" data-section="lociones">Lociones</button>
+    <button class="filter-btn" data-section="otras">Otras Marcas</button>
+    <button class="filter-btn" data-section="ofertas">Ofertas</button>
+  </div>
+  <div class="filter-row">
+    <button class="filter-btn active" data-marca="all">Todas las Marcas</button>
+    <button class="filter-btn" data-marca="Puma">Puma</button>
+    <button class="filter-btn" data-marca="Adidas">Adidas</button>
+    <button class="filter-btn" data-marca="Nike">Nike</button>
+    <button class="filter-btn" data-marca="New Balance">New Balance</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="products-grid" id="productsGrid">
+  <div class="loading" id="loadingMsg">Cargando productos</div>
+  <div class="no-results" id="noResults">No se encontraron productos</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('open')">&#x2715;</button>
+    <div class="carousel-area" id="carouselArea">
+      <div class="carousel-img-wrap">
+        <img id="carouselImg" src="" alt="Producto">
+      </div>
+      <button class="carousel-btn" id="prevBtn" onclick="carouselPrev()">&#8592;</button>
+      <button class="carousel-btn" id="nextBtn" onclick="carouselNext()">&#8594;</button>
+      <div class="carousel-counter" id="carouselCounter"></div>
+    </div>
+    <div class="carousel-dots" id="carouselDots"></div>
+    <div class="modal-info">
+      <div class="modal-marca" id="modalMarca"></div>
+      <div class="modal-talla" id="modalTalla"></div>
+      <div class="modal-codigo" id="modalCodigo"></div>
+      <div class="modal-precio" id="modalPrecio"></div>
+      <a class="whatsapp-btn" id="modalWA" href="#" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Consultar por WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <strong>Catalogo de Productos 2026</strong><br>
+  Todos los productos sujetos a disponibilidad de inventario.
+</footer>
+
+<script>
+var WA_NUMBER = "50212345678"; // CAMBIAR POR EL NUMERO REAL
+
+var allProducts = [];
+var activeSection = 'all';
+var activeMarca = 'all';
+var searchQuery = '';
+var currentCarouselIdx = 0;
+var currentImgs = [];
+
+// Cargar productos desde la API
+fetch('/api/get-products')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    document.getElementById('loadingMsg').style.display = 'none';
+    allProducts = data.filter(function(p) { return p.disponible; });
+    renderCards();
+  })
+  .catch(function(err) {
+    document.getElementById('loadingMsg').textContent = 'Error al cargar productos. Recarga la pagina.';
+  });
+
+function renderCards() {
+  var grid = document.getElementById('productsGrid');
+  grid.querySelectorAll('.product-card').forEach(function(c){ c.remove(); });
+  var visible = 0;
+  allProducts.forEach(function(p) {
+    var sectionMatch = activeSection === 'all' || p.seccion === activeSection;
+    var marcaMatch = activeMarca === 'all' || p.marca === activeMarca;
+    var q = searchQuery.toLowerCase();
+    var searchMatch = !q ||
+      (p.codigo||'').toLowerCase().indexOf(q) >= 0 ||
+      (p.talla||'').toLowerCase().indexOf(q) >= 0 ||
+      (p.marca||'').toLowerCase().indexOf(q) >= 0;
+    if (!sectionMatch || !marcaMatch || !searchMatch) return;
+    visible++;
+    var card = buildCard(p);
+    card.addEventListener('click', (function(prod){ return function(){ openModal(prod); }; })(p));
+    grid.appendChild(card);
+  });
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+  document.getElementById('statsBar').textContent = 'Mostrando ' + visible + ' producto' + (visible !== 1 ? 's' : '');
+}
+
+function buildCard(p) {
+  var card = document.createElement('div');
+  card.className = 'product-card';
+  var badgeText = '', badgeStyle = '';
+  if (p.precio) { badgeText = 'OFERTA'; badgeStyle = 'background:linear-gradient(135deg,#e53935,#ff6f00)'; }
+  else if (p.seccion === 'dama') { badgeText = 'Dama'; }
+  else if (p.seccion === 'caballero') { badgeText = 'Cab.'; }
+  else if (p.seccion === 'lociones') { badgeText = 'Locion'; badgeStyle = 'background:linear-gradient(135deg,#f953c6,#b721ff)'; }
+  var badgeHTML = badgeText ? '<div class="card-badge"' + (badgeStyle ? ' style="' + badgeStyle + '"' : '') + '>' + badgeText + '</div>' : '';
+  var waLabel = p.codigo ? p.marca + ' Cod:' + p.codigo + ' Talla ' + p.talla : p.marca;
+  var waHref = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent('Hola! Me interesa: ' + waLabel);
+  var cardImg = (p.imagenes && p.imagenes.length > 0) ? p.imagenes[0] : 'https://placehold.co/400x400?text=Sin+imagen';
+  card.innerHTML =
+    badgeHTML +
+    '<div class="card-img-wrap"><img src="' + cardImg + '" alt="' + p.marca + '" loading="lazy"></div>' +
+    '<div class="card-info">' +
+      '<div class="card-marca">' + (p.marca||'') + '</div>' +
+      (p.talla ? '<div class="card-talla">Talla ' + p.talla + '</div>' : '') +
+      (p.codigo ? '<div class="card-codigo">Cod: ' + p.codigo + '</div>' : '') +
+      (p.precio ? '<div class="card-precio">' + p.precio + '</div>' : '') +
+      '<a class="whatsapp-btn" href="' + waHref + '" target="_blank" onclick="event.stopPropagation()">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
+        'Consultar' +
+      '</a>' +
+    '</div>';
+  return card;
+}
+
+function openModal(p) {
+  currentImgs = (p.imagenes && p.imagenes.length > 0) ? p.imagenes : ['https://placehold.co/400x400?text=Sin+imagen'];
+  currentCarouselIdx = 0;
+  document.getElementById('modalMarca').textContent = p.marca || '';
+  document.getElementById('modalTalla').textContent = p.talla ? 'Talla ' + p.talla : '';
+  document.getElementById('modalCodigo').textContent = p.codigo ? 'Codigo: ' + p.codigo : '';
+  document.getElementById('modalPrecio').textContent = p.precio || '';
+  var waLabel = p.codigo ? p.marca + ' Cod:' + p.codigo + ' Talla ' + p.talla : p.marca;
+  document.getElementById('modalWA').href = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent('Hola! Me interesa: ' + waLabel);
+  updateCarousel();
+  buildDots();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function updateCarousel() {
+  var img = document.getElementById('carouselImg');
+  img.style.opacity = '0';
+  setTimeout(function() { img.src = currentImgs[currentCarouselIdx]; img.style.opacity = '1'; }, 120);
+  document.getElementById('carouselCounter').textContent = (currentCarouselIdx+1) + ' / ' + currentImgs.length;
+  document.getElementById('prevBtn').style.display = currentImgs.length > 1 ? 'flex' : 'none';
+  document.getElementById('nextBtn').style.display = currentImgs.length > 1 ? 'flex' : 'none';
+}
+
+function buildDots() {
+  var dots = document.getElementById('carouselDots');
+  dots.innerHTML = '';
+  if (currentImgs.length <= 1) return;
+  currentImgs.forEach(function(_, i) {
+    var d = document.createElement('button');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = (function(idx){ return function(){ currentCarouselIdx=idx; updateCarousel(); updateDots(); }; })(i);
+    dots.appendChild(d);
+  });
+}
+function updateDots() {
+  document.querySelectorAll('.dot').forEach(function(d,i){ d.className='dot'+(i===currentCarouselIdx?' active':''); });
+}
+function carouselPrev() { currentCarouselIdx=(currentCarouselIdx-1+currentImgs.length)%currentImgs.length; updateCarousel(); updateDots(); }
+function carouselNext() { currentCarouselIdx=(currentCarouselIdx+1)%currentImgs.length; updateCarousel(); updateDots(); }
+
+var touchStartX = 0;
+document.getElementById('carouselArea').addEventListener('touchstart', function(e){ touchStartX=e.touches[0].clientX; }, {passive:true});
+document.getElementById('carouselArea').addEventListener('touchend', function(e){ var diff=touchStartX-e.changedTouches[0].clientX; if(Math.abs(diff)>40){diff>0?carouselNext():carouselPrev();} });
+
+function closeModal(e) { if(e.target===document.getElementById('modalOverlay')){ document.getElementById('modalOverlay').classList.remove('open'); } }
+
+document.querySelectorAll('[data-section]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('[data-section]').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active'); activeSection=btn.dataset.section; renderCards();
+  });
+});
+document.querySelectorAll('[data-marca]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('[data-marca]').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active'); activeMarca=btn.dataset.marca; renderCards();
+  });
+});
+document.getElementById('searchInput').addEventListener('input', function(e){ searchQuery=e.target.value; renderCards(); });
+</script>
+</body>
+</html>

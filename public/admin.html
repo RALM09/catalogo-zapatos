@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Catalogo de Zapatos</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+  :root { --purple:#7b2ff7; --pink:#f953c6; --dark:#1a0533; --green:#25d366; --red:#e53935; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Nunito',sans-serif; background:#f4eeff; color:#2d1b4e; min-height:100vh; }
+
+  /* LOGIN */
+  .login-screen { position:fixed; inset:0; background:linear-gradient(135deg,#7b2ff7,#f953c6); display:flex; align-items:center; justify-content:center; z-index:999; }
+  .login-box { background:white; border-radius:24px; padding:40px 36px; width:90%; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+  .login-box h1 { font-family:'Pacifico',cursive; font-size:1.8rem; color:var(--purple); margin-bottom:8px; }
+  .login-box p { color:#888; font-size:0.9rem; margin-bottom:28px; }
+  .login-input { width:100%; padding:14px 18px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:1rem; outline:none; margin-bottom:14px; }
+  .login-input:focus { border-color:var(--purple); }
+  .login-btn { width:100%; padding:14px; border-radius:50px; border:none; background:linear-gradient(135deg,var(--purple),var(--pink)); color:white; font-family:'Nunito',sans-serif; font-weight:900; font-size:1rem; cursor:pointer; }
+  .login-error { color:var(--red); font-size:0.85rem; margin-top:10px; display:none; }
+
+  /* HEADER */
+  .admin-header { background:linear-gradient(135deg,var(--dark),#3b1278); padding:18px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .admin-header h1 { font-family:'Pacifico',cursive; color:white; font-size:1.4rem; }
+  .header-actions { display:flex; gap:10px; align-items:center; }
+  .btn { padding:9px 20px; border-radius:50px; border:none; font-family:'Nunito',sans-serif; font-weight:800; font-size:0.85rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+  .btn-primary { background:linear-gradient(135deg,var(--purple),var(--pink)); color:white; }
+  .btn-outline { background:transparent; border:2px solid rgba(255,255,255,0.5); color:white; }
+  .btn-outline:hover { background:rgba(255,255,255,0.1); }
+  .btn-danger { background:var(--red); color:white; }
+  .btn-success { background:var(--green); color:white; }
+  .btn-sm { padding:6px 14px; font-size:0.78rem; }
+
+  /* STATS */
+  .stats-row { display:flex; gap:14px; padding:20px; flex-wrap:wrap; }
+  .stat-card { background:white; border-radius:16px; padding:16px 20px; flex:1; min-width:120px; box-shadow:0 2px 12px rgba(123,47,247,0.08); }
+  .stat-num { font-size:2rem; font-weight:900; color:var(--purple); }
+  .stat-label { font-size:0.8rem; color:#888; font-weight:600; margin-top:2px; }
+
+  /* FILTERS */
+  .admin-filters { background:white; padding:14px 20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+  .filter-select { padding:8px 14px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.85rem; outline:none; cursor:pointer; }
+  .filter-select:focus { border-color:var(--purple); }
+  .search-input { flex:1; min-width:200px; padding:8px 16px; border-radius:50px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.9rem; outline:none; }
+  .search-input:focus { border-color:var(--purple); }
+
+  /* PRODUCTS TABLE */
+  .products-section { padding:16px 20px; }
+  .products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  .admin-card { background:white; border-radius:18px; overflow:hidden; box-shadow:0 2px 14px rgba(123,47,247,0.08); position:relative; transition:box-shadow 0.2s; }
+  .admin-card.agotado { opacity:0.55; }
+  .admin-card-img { width:100%; aspect-ratio:1/1; background:#f8f4ff; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .admin-card-img img { width:100%; height:100%; object-fit:contain; }
+  .admin-card-body { padding:12px 14px; }
+  .admin-card-marca { font-size:0.7rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--purple); }
+  .admin-card-talla { font-size:0.95rem; font-weight:800; margin:2px 0; }
+  .admin-card-codigo { font-size:0.78rem; color:#888; }
+  .admin-card-precio { font-size:1.1rem; font-weight:900; color:var(--red); margin-top:4px; }
+  .admin-card-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .agotado-badge { position:absolute; top:10px; left:10px; background:var(--red); color:white; font-size:0.65rem; font-weight:900; padding:3px 8px; border-radius:20px; }
+  .img-count { position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.5); color:white; font-size:0.65rem; font-weight:700; padding:3px 7px; border-radius:20px; }
+
+  /* MODAL ADD */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,2,25,0.88); z-index:500; align-items:center; justify-content:center; padding:16px; }
+  .modal-overlay.open { display:flex; }
+  .modal-box { background:white; border-radius:24px; max-width:540px; width:100%; max-height:92vh; overflow-y:auto; padding:28px; animation:popIn 0.25s ease; }
+  @keyframes popIn { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+  .modal-box h2 { font-size:1.4rem; font-weight:900; color:var(--purple); margin-bottom:22px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-weight:700; font-size:0.85rem; margin-bottom:6px; color:#555; }
+  .form-control { width:100%; padding:11px 16px; border-radius:12px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.95rem; outline:none; transition:border-color 0.2s; }
+  .form-control:focus { border-color:var(--purple); }
+  select.form-control { cursor:pointer; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* IMAGE UPLOAD */
+  .img-upload-area { border:2px dashed #c4b5f5; border-radius:14px; padding:24px; text-align:center; cursor:pointer; transition:all 0.2s; background:#faf8ff; }
+  .img-upload-area:hover { border-color:var(--purple); background:#f3eeff; }
+  .img-upload-area input { display:none; }
+  .img-upload-area p { color:#888; font-size:0.9rem; margin-top:8px; }
+  .img-previews { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .img-preview-item { position:relative; width:80px; height:80px; border-radius:10px; overflow:hidden; border:2px solid #e0d5f5; }
+  .img-preview-item img { width:100%; height:100%; object-fit:cover; }
+  .img-preview-item .remove-img { position:absolute; top:2px; right:2px; background:var(--red); color:white; border:none; width:18px; height:18px; border-radius:50%; font-size:0.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:900; }
+
+  .form-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:22px; }
+  .btn-cancel { background:#f0f0f0; color:#666; padding:11px 24px; border-radius:50px; border:none; font-family:'Nunito',sans-serif; font-weight:700; cursor:pointer; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:#1a0533; color:white; padding:14px 22px; border-radius:14px; font-weight:700; font-size:0.9rem; z-index:9999; transform:translateY(80px); opacity:0; transition:all 0.3s; pointer-events:none; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { background:#1b5e20; }
+  .toast.error { background:#b71c1c; }
+
+  .empty-state { text-align:center; padding:60px 20px; color:#bbb; grid-column:1/-1; }
+  .spinner { display:inline-block; width:18px; height:18px; border:3px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
+  @keyframes spin { to{transform:rotate(360deg);} }
+
+  @media(max-width:600px){
+    .form-row{grid-template-columns:1fr;}
+    .products-grid{grid-template-columns:repeat(2,1fr);}
+    .stats-row{gap:8px;}
+    .stat-card{min-width:calc(50% - 4px);}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <h1>Admin</h1>
+    <p>Panel de administracion del catalogo</p>
+    <input type="password" class="login-input" id="passwordInput" placeholder="Contrasena de administrador" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <p class="login-error" id="loginError">Contrasena incorrecta</p>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="admin-header">
+  <h1>Admin Catalogo</h1>
+  <div class="header-actions">
+    <a href="/" class="btn btn-outline">Ver catalogo</a>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Agregar producto</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row" id="statsRow">
+  <div class="stat-card"><div class="stat-num" id="statTotal">-</div><div class="stat-label">Total productos</div></div>
+  <div class="stat-card"><div class="stat-num" id="statDama">-</div><div class="stat-label">Dama</div></div>
+  <div class="stat-card"><div class="stat-num" id="statCab">-</div><div class="stat-label">Caballero</div></div>
+  <div class="stat-card"><div class="stat-num" id="statOfertas">-</div><div class="stat-label">Ofertas</div></div>
+  <div class="stat-card"><div class="stat-num" id="statAgotado">-</div><div class="stat-label">Agotados</div></div>
+</div>
+
+<!-- FILTERS -->
+<div class="admin-filters">
+  <input type="text" class="search-input" id="adminSearch" placeholder="Buscar producto..." oninput="filterProducts()">
+  <select class="filter-select" id="filterSeccion" onchange="filterProducts()">
+    <option value="">Todas las secciones</option>
+    <option value="dama">Dama</option>
+    <option value="caballero">Caballero</option>
+    <option value="lociones">Lociones</option>
+    <option value="otras">Otras Marcas</option>
+    <option value="ofertas">Ofertas</option>
+  </select>
+  <select class="filter-select" id="filterDisp" onchange="filterProducts()">
+    <option value="">Todos</option>
+    <option value="disponible">Disponibles</option>
+    <option value="agotado">Agotados</option>
+  </select>
+</div>
+
+<!-- PRODUCTS -->
+<div class="products-section">
+  <div class="products-grid" id="adminGrid">
+    <div class="empty-state">Cargando productos<span class="spinner" style="margin-left:8px"></span></div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR PRODUCTO -->
+<div class="modal-overlay" id="addModal" onclick="closeAddModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h2>Agregar producto</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Seccion *</label>
+        <select class="form-control" id="fSeccion">
+          <option value="dama">Dama</option>
+          <option value="caballero">Caballero</option>
+          <option value="lociones">Lociones</option>
+          <option value="otras">Otras Marcas</option>
+          <option value="ofertas">Ofertas</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Marca *</label>
+        <input type="text" class="form-control" id="fMarca" placeholder="Ej: Puma, Nike...">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Talla</label>
+        <input type="text" class="form-control" id="fTalla" placeholder="Ej: 37, 40.5">
+      </div>
+      <div class="form-group">
+        <label>Codigo</label>
+        <input type="text" class="form-control" id="fCodigo" placeholder="Ej: 311100_12">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Precio (dejar vacio si no aplica)</label>
+      <input type="text" class="form-control" id="fPrecio" placeholder="Ej: Q. 350.00">
+    </div>
+    <div class="form-group">
+      <label>Fotos del producto</label>
+      <div class="img-upload-area" onclick="document.getElementById('imgInput').click()">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c4b5f5" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <p>Clic para subir fotos<br><small>JPG, PNG - Puedes subir varias a la vez</small></p>
+        <input type="file" id="imgInput" accept="image/*" multiple onchange="handleImages(event)">
+      </div>
+      <div class="img-previews" id="imgPreviews"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="document.getElementById('addModal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="saveProduct()">Guardar producto</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var ADMIN_PASSWORD = '';
+var allProducts = [];
+var pendingImages = []; // {dataUrl, file}
+
+// ---- LOGIN ----
+function doLogin() {
+  var pwd = document.getElementById('passwordInput').value;
+  if (!pwd) return;
+  // Validar contra la API
+  fetch('/api/get-products', { headers: { 'Authorization': 'Bearer ' + pwd } })
+    .then(function(r) {
+      if (r.status === 401) throw new Error('wrong');
+      return r.json();
+    })
+    .then(function(data) {
+      ADMIN_PASSWORD = pwd;
+      document.getElementById('loginScreen').style.display = 'none';
+      allProducts = data;
+      renderStats();
+      renderAdminCards(data);
+    })
+    .catch(function() {
+      document.getElementById('loginError').style.display = 'block';
+    });
+}
+
+// ---- STATS ----
+function renderStats() {
+  document.getElementById('statTotal').textContent = allProducts.length;
+  document.getElementById('statDama').textContent = allProducts.filter(function(p){ return p.seccion==='dama'; }).length;
+  document.getElementById('statCab').textContent = allProducts.filter(function(p){ return p.seccion==='caballero'; }).length;
+  document.getElementById('statOfertas').textContent = allProducts.filter(function(p){ return p.seccion==='ofertas'; }).length;
+  document.getElementById('statAgotado').textContent = allProducts.filter(function(p){ return !p.disponible; }).length;
+}
+
+// ---- RENDER CARDS ----
+function renderAdminCards(products) {
+  var grid = document.getElementById('adminGrid');
+  grid.innerHTML = '';
+  if (!products.length) {
+    grid.innerHTML = '<div class="empty-state">No hay productos</div>';
+    return;
+  }
+  products.forEach(function(p) {
+    var card = document.createElement('div');
+    card.className = 'admin-card' + (p.disponible ? '' : ' agotado');
+    var imgSrc = (p.imagenes && p.imagenes.length > 0) ? p.imagenes[0] : 'https://placehold.co/300x300?text=Sin+imagen';
+    var imgCount = (p.imagenes && p.imagenes.length > 1) ? '<div class="img-count">' + p.imagenes.length + ' fotos</div>' : '';
+    var agotadoBadge = !p.disponible ? '<div class="agotado-badge">AGOTADO</div>' : '';
+    card.innerHTML =
+      '<div class="admin-card-img">' +
+        '<img src="' + imgSrc + '" alt="' + (p.marca||'') + '" loading="lazy">' +
+        agotadoBadge + imgCount +
+      '</div>' +
+      '<div class="admin-card-body">' +
+        '<div class="admin-card-marca">' + (p.seccion||'') + ' &bull; ' + (p.marca||'') + '</div>' +
+        (p.talla ? '<div class="admin-card-talla">Talla ' + p.talla + '</div>' : '') +
+        (p.codigo ? '<div class="admin-card-codigo">Cod: ' + p.codigo + '</div>' : '') +
+        (p.precio ? '<div class="admin-card-precio">' + p.precio + '</div>' : '') +
+        '<div class="admin-card-actions">' +
+          '<button class="btn btn-sm ' + (p.disponible ? 'btn-danger' : 'btn-success') + '" onclick="toggleDisp(\'' + p.id + '\',' + !p.disponible + ')">' +
+            (p.disponible ? 'Marcar agotado' : 'Marcar disponible') +
+          '</button>' +
+          '<button class="btn btn-sm btn-danger" onclick="deleteProduct(\'' + p.id + '\')">Eliminar</button>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+}
+
+// ---- FILTER ----
+function filterProducts() {
+  var q = document.getElementById('adminSearch').value.toLowerCase();
+  var sec = document.getElementById('filterSeccion').value;
+  var disp = document.getElementById('filterDisp').value;
+  var filtered = allProducts.filter(function(p) {
+    var matchQ = !q || (p.codigo||'').toLowerCase().indexOf(q)>=0 || (p.marca||'').toLowerCase().indexOf(q)>=0 || (p.talla||'').toLowerCase().indexOf(q)>=0;
+    var matchSec = !sec || p.seccion === sec;
+    var matchDisp = !disp || (disp==='disponible' ? p.disponible : !p.disponible);
+    return matchQ && matchSec && matchDisp;
+  });
+  renderAdminCards(filtered);
+}
+
+// ---- IMAGE UPLOAD ----
+function handleImages(event) {
+  var files = Array.from(event.target.files);
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pendingImages.push({ dataUrl: e.target.result, file: file });
+      renderPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value = '';
+}
+
+function renderPreviews() {
+  var container = document.getElementById('imgPreviews');
+  container.innerHTML = '';
+  pendingImages.forEach(function(img, i) {
+    var div = document.createElement('div');
+    div.className = 'img-preview-item';
+    div.innerHTML = '<img src="' + img.dataUrl + '"><button class="remove-img" onclick="removeImg(' + i + ')">x</button>';
+    container.appendChild(div);
+  });
+}
+
+function removeImg(i) {
+  pendingImages.splice(i, 1);
+  renderPreviews();
+}
+
+// ---- ADD MODAL ----
+function openAddModal() {
+  document.getElementById('fSeccion').value = 'dama';
+  document.getElementById('fMarca').value = '';
+  document.getElementById('fTalla').value = '';
+  document.getElementById('fCodigo').value = '';
+  document.getElementById('fPrecio').value = '';
+  pendingImages = [];
+  renderPreviews();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeAddModal(e) {
+  if (e.target === document.getElementById('addModal')) {
+    document.getElementById('addModal').classList.remove('open');
+  }
+}
+
+// ---- SAVE PRODUCT ----
+function saveProduct() {
+  var marca = document.getElementById('fMarca').value.trim();
+  var seccion = document.getElementById('fSeccion').value;
+  if (!marca) { showToast('La marca es requerida', 'error'); return; }
+
+  var btn = document.getElementById('saveBtn');
+  btn.innerHTML = '<span class="spinner"></span>Guardando...';
+  btn.disabled = true;
+
+  var payload = {
+    seccion: seccion,
+    marca: marca,
+    talla: document.getElementById('fTalla').value.trim(),
+    codigo: document.getElementById('fCodigo').value.trim(),
+    precio: document.getElementById('fPrecio').value.trim(),
+    imagenes: pendingImages.map(function(img){ return img.dataUrl; })
+  };
+
+  fetch('/api/add-product', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_PASSWORD },
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error);
+    allProducts.unshift(data);
+    renderStats();
+    filterProducts();
+    document.getElementById('addModal').classList.remove('open');
+    showToast('Producto agregado correctamente', 'success');
+  })
+  .catch(function(err) {
+    showToast('Error: ' + err.message, 'error');
+  })
+  .finally(function() {
+    btn.innerHTML = 'Guardar producto';
+    btn.disabled = false;
+  });
+}
+
+// ---- TOGGLE DISPONIBLE ----
+function toggleDisp(id, disponible) {
+  fetch('/api/toggle-product', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_PASSWORD },
+    body: JSON.stringify({ id: id, disponible: disponible })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error);
+    var idx = allProducts.findIndex(function(p){ return p.id === id; });
+    if (idx >= 0) allProducts[idx].disponible = disponible;
+    renderStats();
+    filterProducts();
+    showToast(disponible ? 'Producto marcado como disponible' : 'Producto marcado como agotado', 'success');
+  })
+  .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+}
+
+// ---- DELETE ----
+function deleteProduct(id) {
+  if (!confirm('Seguro que quieres eliminar este producto? Esta accion no se puede deshacer.')) return;
+  fetch('/api/delete-product', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ADMIN_PASSWORD },
+    body: JSON.stringify({ id: id })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error);
+    allProducts = allProducts.filter(function(p){ return p.id !== id; });
+    renderStats();
+    filterProducts();
+    showToast('Producto eliminado', 'success');
+  })
+  .catch(function(err) { showToast('Error: ' + err.message, 'error'); });
+}
+
+// ---- TOAST ----
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type||'');
+  setTimeout(function(){ t.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>
