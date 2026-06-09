@@ -126,6 +126,48 @@
   .toast.error { background:#b71c1c; }
 
   .empty-state { text-align:center; padding:48px 20px; color:#bbb; grid-column:1/-1; }
+
+  /* CUSTOM SELECT */
+  .custom-select-wrap { position:relative; }
+  .custom-select-wrap select { appearance:none; -webkit-appearance:none; width:100%; padding:10px 36px 10px 14px; border-radius:12px; border:2px solid #e0d5f5; font-family:'Nunito',sans-serif; font-size:0.9rem; font-weight:600; color:#2d1b4e; background:white; cursor:pointer; outline:none; transition:border-color 0.2s; }
+  .custom-select-wrap select:focus { border-color:var(--purple); }
+  .custom-select-wrap::after { content:''; position:absolute; right:12px; top:50%; transform:translateY(-50%); width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid #7b2ff7; pointer-events:none; }
+  .custom-select-wrap.filter-wrap select { padding:7px 32px 7px 12px; border-radius:50px; font-size:0.82rem; }
+
+  /* PHOTO VIEWER */
+  .photo-viewer { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.94); z-index:2000; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+  .photo-viewer.open { display:flex; }
+  .photo-viewer img { max-width:92vw; max-height:75vh; object-fit:contain; border-radius:12px; }
+  .photo-viewer-thumbs { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:92vw; }
+  .photo-viewer-thumb { width:56px; height:56px; border-radius:8px; overflow:hidden; cursor:pointer; border:2px solid rgba(255,255,255,0.2); transition:border-color 0.2s; }
+  .photo-viewer-thumb.active { border-color:white; }
+  .photo-viewer-thumb img { width:100%; height:100%; object-fit:cover; }
+  .photo-viewer-close { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.15); border:none; color:white; width:36px; height:36px; border-radius:50%; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:900; }
+  .photo-viewer-nav { display:flex; gap:12px; }
+  .photo-viewer-nav button { background:rgba(255,255,255,0.15); border:none; color:white; padding:8px 18px; border-radius:50px; font-size:1rem; cursor:pointer; font-family:'Nunito',sans-serif; font-weight:700; }
+
+  /* TOGGLE SWITCH */
+  .toggle-switch { position:relative; display:inline-block; width:50px; height:26px; flex-shrink:0; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider { position:absolute; cursor:pointer; inset:0; background:#ddd; border-radius:26px; transition:0.3s; }
+  .toggle-slider:before { content:""; position:absolute; width:20px; height:20px; left:3px; bottom:3px; background:white; border-radius:50%; transition:0.3s; box-shadow:0 1px 4px rgba(0,0,0,0.2); }
+  .toggle-switch input:checked + .toggle-slider { background:linear-gradient(135deg,var(--purple),var(--pink)); }
+  .toggle-switch input:checked + .toggle-slider:before { transform:translateX(24px); }
+
+  /* DRAFT BADGE */
+  .draft-badge { position:absolute; top:8px; left:8px; background:#757575; color:white; font-size:0.6rem; font-weight:900; padding:2px 7px; border-radius:20px; }
+
+  /* CUSTOM CONFIRM DIALOG */
+  .confirm-overlay { display:none; position:fixed; inset:0; background:rgba(10,2,25,0.88); z-index:3000; align-items:center; justify-content:center; padding:20px; }
+  .confirm-overlay.open { display:flex; }
+  .confirm-box { background:white; border-radius:24px; padding:28px 24px; max-width:340px; width:100%; text-align:center; animation:popIn 0.25s ease; }
+  .confirm-icon { font-size:2.8rem; margin-bottom:10px; }
+  .confirm-title { font-size:1.15rem; font-weight:900; color:#2d1b4e; margin-bottom:8px; }
+  .confirm-msg { font-size:0.88rem; color:#666; line-height:1.5; margin-bottom:22px; }
+  .confirm-actions { display:flex; gap:10px; justify-content:center; }
+  .confirm-cancel { padding:11px 24px; border-radius:50px; border:2px solid #e0d5f5; background:white; color:#666; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.9rem; cursor:pointer; }
+  .confirm-ok { padding:11px 24px; border-radius:50px; border:none; background:linear-gradient(135deg,#e53935,#b71c1c); color:white; font-family:'Nunito',sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer; }
+
   .spinner { display:inline-block; width:14px; height:14px; border:2.5px solid rgba(255,255,255,0.4); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; }
   @keyframes spin { to{transform:rotate(360deg);} }
 </style>
@@ -165,18 +207,18 @@
     <div class="stat-card"><div class="stat-num" id="statDama">-</div><div class="stat-label">Dama</div></div>
     <div class="stat-card"><div class="stat-num" id="statCab">-</div><div class="stat-label">Caballero</div></div>
     <div class="stat-card"><div class="stat-num" id="statOfertas">-</div><div class="stat-label">Ofertas</div></div>
-    <div class="stat-card"><div class="stat-num" id="statAgotado">-</div><div class="stat-label">Agotados</div></div>
+    <div class="stat-card"><div class="stat-num" id="statAgotado">-</div><div class="stat-label">Borradores</div></div>
   </div>
   <div class="admin-filters">
     <input type="text" class="search-input" id="adminSearch" placeholder="Buscar..." oninput="filterProducts()">
-    <select class="filter-select" id="filterSeccion" onchange="filterProducts()">
+    <div class="custom-select-wrap filter-wrap"><select class="filter-select" id="filterSeccion" onchange="filterProducts()">
       <option value="">Todas las secciones</option>
-    </select>
-    <select class="filter-select" id="filterDisp" onchange="filterProducts()">
+    </select></div>
+    <div class="custom-select-wrap filter-wrap"><select class="filter-select" id="filterDisp" onchange="filterProducts()">
       <option value="">Todos</option>
       <option value="disponible">Disponibles</option>
       <option value="agotado">Agotados</option>
-    </select>
+    </select></div>
   </div>
   <div class="products-section">
     <div class="products-grid" id="adminGrid">
@@ -238,7 +280,7 @@
     <div class="form-row">
       <div class="form-group">
         <label>Seccion *</label>
-        <select class="form-control" id="fSeccion"></select>
+        <div class="custom-select-wrap"><select class="form-control" id="fSeccion"></select></div>
       </div>
       <div class="form-group">
         <label>Marca *</label>
@@ -270,9 +312,40 @@
       <div class="img-previews" id="imgPreviews"></div>
       <div id="existingImgs" style="margin-top:8px"></div>
     </div>
+    <div class="form-group" style="background:#f8f4ff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-weight:800;font-size:0.9rem;color:#2d1b4e">Publicar en el catalogo</div>
+        <div style="font-size:0.78rem;color:#888;margin-top:2px">Si lo desactivas quedara como borrador y no se vera en el catalogo</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="fDisponible" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
     <div class="form-actions">
       <button class="btn btn-gray" onclick="document.getElementById('productModal').classList.remove('open')">Cancelar</button>
       <button class="btn btn-primary" id="saveBtn" onclick="saveProduct()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- PHOTO VIEWER -->
+<div class="photo-viewer" id="photoViewer" onclick="closePhotoViewer(event)">
+  <button class="photo-viewer-close" onclick="document.getElementById('photoViewer').classList.remove('open')">&#x2715;</button>
+  <img id="photoViewerImg" src="" alt="">
+  <div class="photo-viewer-thumbs" id="photoViewerThumbs"></div>
+</div>
+
+<!-- CUSTOM CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon">🗑️</div>
+    <div class="confirm-title" id="confirmTitle">Eliminar producto</div>
+    <div class="confirm-msg" id="confirmMsg">Esta accion no se puede deshacer.</div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancelar</button>
+      <button class="confirm-ok" id="confirmOkBtn">Eliminar</button>
     </div>
   </div>
 </div>
@@ -291,6 +364,61 @@ var editingId = null;
 var secciones = [];
 var marcas = [];
 var config = {};
+
+
+// ---- PHOTO VIEWER ----
+var viewerImgs = [];
+var viewerIdx = 0;
+
+function openPhotoViewer(imgs, startIdx) {
+  viewerImgs = imgs; viewerIdx = startIdx || 0;
+  updateViewer();
+  document.getElementById('photoViewer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateViewer() {
+  document.getElementById('photoViewerImg').src = viewerImgs[viewerIdx];
+  var thumbs = document.getElementById('photoViewerThumbs');
+  thumbs.innerHTML = '';
+  viewerImgs.forEach(function(url, i) {
+    var div = document.createElement('div');
+    div.className = 'photo-viewer-thumb' + (i === viewerIdx ? ' active' : '');
+    div.innerHTML = '<img src="' + url + '">';
+    div.onclick = (function(idx){ return function(e){ e.stopPropagation(); viewerIdx=idx; updateViewer(); }; })(i);
+    thumbs.appendChild(div);
+  });
+}
+
+function closePhotoViewer(e) {
+  if (e.target === document.getElementById('photoViewer')) {
+    document.getElementById('photoViewer').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+// ---- CUSTOM CONFIRM ----
+var confirmCallback = null;
+
+function showConfirm(icon, title, msg, okLabel, cb) {
+  document.getElementById('confirmIcon').textContent = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  var okBtn = document.getElementById('confirmOkBtn');
+  okBtn.textContent = okLabel || 'Confirmar';
+  confirmCallback = cb;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  confirmCallback = null;
+}
+
+document.getElementById('confirmOkBtn').onclick = function() {
+  closeConfirm();
+  if (confirmCallback) confirmCallback();
+};
 
 // ---- LOGIN ----
 function doLogin() {
@@ -390,10 +518,14 @@ function renderAdminCards(products) {
     var card = document.createElement('div');
     card.className = 'admin-card'+(p.disponible?'':' agotado');
     var imgSrc = (p.imagenes&&p.imagenes.length>0) ? p.imagenes[0] : 'https://placehold.co/300x300/f4eeff/7b2ff7?text=Sin+imagen';
+    var pImgs = p.imagenes||[];
     var imgCount = (p.imagenes&&p.imagenes.length>1) ? '<div class="img-count">'+p.imagenes.length+' fotos</div>' : '';
-    var agotadoBadge = !p.disponible ? '<div class="agotado-badge">AGOTADO</div>' : '';
+    var agotadoBadge = '';
+    if (!p.disponible && p.precio) agotadoBadge = '<div class="agotado-badge">AGOTADO</div>';
+    else if (!p.disponible) agotadoBadge = '<div class="draft-badge">BORRADOR</div>';
+    var pImgsJSON = JSON.stringify(pImgs).replace(/"/g,'&quot;');
     card.innerHTML =
-      '<div class="admin-card-img"><img src="'+imgSrc+'" alt="" loading="lazy">'+agotadoBadge+imgCount+'</div>'+
+      '<div class="admin-card-img" style="cursor:zoom-in" onclick="event.stopPropagation();openPhotoViewerFromData(this)" data-imgs="'+pImgsJSON+'">'++'<img src="'+imgSrc+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'+agotadoBadge+imgCount+'</div>'+
       '<div class="admin-card-body">'+
         '<div class="admin-card-marca">'+(p.seccion||'')+' &bull; '+(p.marca||'')+'</div>'+
         (p.talla?'<div class="admin-card-talla">Talla '+p.talla+'</div>':'')+
@@ -434,6 +566,7 @@ function openProductModal() {
   document.getElementById('fPrecio').value = '';
   document.getElementById('imgPreviews').innerHTML = '';
   document.getElementById('existingImgs').innerHTML = '';
+  document.getElementById('fDisponible').checked = true;
   populateModalSelects();
   document.getElementById('productModal').classList.add('open');
 }
@@ -452,6 +585,7 @@ function openEditModal(id) {
   document.getElementById('fTalla').value = p.talla || '';
   document.getElementById('fCodigo').value = p.codigo || '';
   document.getElementById('fPrecio').value = p.precio || '';
+  document.getElementById('fDisponible').checked = p.disponible !== false;
   document.getElementById('imgPreviews').innerHTML = '';
   renderExistingImgs();
   document.getElementById('productModal').classList.add('open');
@@ -526,7 +660,7 @@ async function saveProduct() {
       talla: document.getElementById('fTalla').value.trim(),
       codigo: document.getElementById('fCodigo').value.trim(),
       precio: document.getElementById('fPrecio').value.trim(),
-      imagenes: allUrls, disponible: true
+      imagenes: allUrls, disponible: document.getElementById('fDisponible').checked
     };
     if (editingId) {
       var res = await db.from('productos').update(payload).eq('id',editingId).select().single();
@@ -549,6 +683,12 @@ async function saveProduct() {
   }
 }
 
+function openPhotoViewerFromData(el) {
+  var imgs = JSON.parse(el.getAttribute('data-imgs').replace(/&quot;/g,'"'));
+  if (!imgs || !imgs.length) return;
+  openPhotoViewer(imgs, 0);
+}
+
 // ---- TOGGLE / DELETE ----
 function toggleDisp(id, disponible) {
   db.from('productos').update({disponible:disponible}).eq('id',id).select().single().then(function(res){
@@ -561,8 +701,8 @@ function toggleDisp(id, disponible) {
 }
 function deleteProduct(id) {
   var prod = allProducts.find(function(p){return p.id===id;});
-  var label = prod ? (prod.marca||'')+(prod.talla?' Talla '+prod.talla:'')+(prod.codigo?' ('+prod.codigo+')':'') : 'este producto';
-  if(!confirm('Seguro que quieres eliminar "'+label+'"?\n\nEsta accion no se puede deshacer y borrara las fotos tambien.')) return;
+  var label = prod ? (prod.marca||'')+(prod.talla?' Talla '+prod.talla:'')+(prod.codigo?' - Cod: '+prod.codigo:'') : 'este producto';
+  showConfirm('🗑️', 'Eliminar producto', 'Vas a eliminar "'+label+'". Esta accion borrara el producto y sus fotos permanentemente.', 'Si, eliminar', function(){
   var prod = allProducts.find(function(p){return p.id===id;});
   var del = Promise.resolve();
   if(prod&&prod.imagenes&&prod.imagenes.length>0){
@@ -575,6 +715,7 @@ function deleteProduct(id) {
     renderStats(); filterProducts();
     showToast('Producto eliminado','success');
   });
+  }); // end showConfirm
 }
 
 // ---- MANTENIMIENTO ----
