@@ -292,6 +292,17 @@
     <div class="modal-handle"></div>
     <h2 id="modalTitle">Agregar producto</h2>
     <input type="hidden" id="fId">
+
+    <!-- URL IMPORTER -->
+    <div style="background:#f0eaff;border-radius:14px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:0.82rem;font-weight:900;color:#7b2ff7;margin-bottom:8px">Importar desde URL del producto</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="importUrl" class="form-control" placeholder="https://us.puma.com/us/en/pd/..." style="border-radius:50px;font-size:0.85rem;padding:9px 14px">
+        <button class="btn btn-primary" onclick="importFromUrl()" id="importBtn" style="white-space:nowrap;flex-shrink:0">Importar</button>
+      </div>
+      <div id="importStatus" style="font-size:0.78rem;margin-top:6px;color:#888;display:none"></div>
+    </div>
+
     <div class="form-row">
       <div class="form-group">
         <label>Seccion *</label>
@@ -586,6 +597,8 @@ function openProductModal() {
   document.getElementById('imgPreviews').innerHTML = '';
   document.getElementById('existingImgs').innerHTML = '';
   document.getElementById('fDisponible').checked = true;
+  document.getElementById('importUrl').value = '';
+  var st=document.getElementById('importStatus'); st.style.display='none'; st.textContent='';
   populateModalSelects();
   document.getElementById('productModal').classList.add('open');
 }
@@ -877,6 +890,208 @@ async function saveConfig() {
     await db.from('config').upsert({clave:'footer_texto',valor:footer},{onConflict:'clave'});
     showToast('Configuracion guardada','success');
   } catch(err) { showToast('Error: '+err.message,'error'); } finally { hideLoader(); }
+}
+
+// ---- URL IMPORTER ----
+async function importFromUrl() {
+  var url = document.getElementById('importUrl').value.trim();
+  if (!url) { showToast('Pega un link de producto primero', 'error'); return; }
+
+  var btn = document.getElementById('importBtn');
+  var status = document.getElementById('importStatus');
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  status.style.display = 'block';
+  status.style.color = '#7b2ff7';
+  status.textContent = 'Analizando pagina...';
+  showLoader('Importando producto...');
+
+  try {
+    // ── Fetch the product page via allorigins proxy (bypasses CORS) ──
+    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    var res = await fetch(proxyUrl);
+    var json = await res.json();
+    var html = json.contents;
+
+    if (!html) throw new Error('No se pudo acceder a la pagina');
+
+    // ── Extract product name from <title> ──
+    var titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    var productName = titleMatch ? titleMatch[1].replace(/\s*\|\s*.+$/, '').trim() : '';
+
+    // ── Extract images ──
+    var imageUrls = [];
+
+    // Strategy 1: og:image meta tag (works on most sites)
+    var ogMatch = html.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+                || html.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    if (ogMatch) imageUrls.push(ogMatch[1].replace(/&amp;/g, '&'));
+
+    // Strategy 2: Puma-specific CDN pattern - get multiple angles
+    var pumaMatches = html.match(/images\.puma\.com\/image\/upload\/[^"'\s)]+/g);
+    if (pumaMatches) {
+      var seen = {};
+      pumaMatches.forEach(function(u) {
+        // Normalize to full quality version
+        var clean = u.replace(/f_auto,q_auto,[^\/]+\//, 'f_auto,q_auto,b_rgb:fafafa,w_1000,h_1000/')
+                     .replace(/&amp;/g, '&');
+        // Only unique base images (different sv01, sv02 etc = different angles)
+        var key = clean.replace(/w_\d+,h_\d+/, '');
+        if (!seen[key] && imageUrls.length < 6) {
+          seen[key] = true;
+          imageUrls.push('https://' + clean.replace(/^https?:\/\//, ''));
+        }
+      });
+    }
+
+    // Strategy 3: Nike CDN
+    var nikeMatches = html.match(/images\.nike\.net[^"'\s)]+/g)
+                   || html.match(/static\.nike\.com\/a\/images[^"'\s)]+\.jpg/g);
+    if (nikeMatches && imageUrls.length < 2) {
+      nikeMatches.slice(0, 4).forEach(function(u) {
+        if (imageUrls.indexOf('https://'+u) < 0) imageUrls.push('https://' + u.replace(/^https?:\/\//, ''));
+      });
+    }
+
+    // Strategy 4: Adidas CDN
+    var adiMatches = html.match(/assets\.adidas\.com\/images[^"'\s)]+\.jpg/g);
+    if (adiMatches && imageUrls.length < 2) {
+      adiMatches.slice(0, 4).forEach(function(u) {
+        if (imageUrls.indexOf('https://'+u) < 0) imageUrls.push('https://' + u.replace(/^https?:\/\//, ''));
+      });
+    }
+
+    // Strategy 5: Generic - look for large product images in JSON-LD
+    var jsonLdMatch = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+    if (jsonLdMatch && imageUrls.length < 2) {
+      jsonLdMatch.forEach(function(block) {
+        try {
+          var data = JSON.parse(block.replace(/<script[^>]*>|<\/script>/gi, ''));
+          if (data.image) {
+            var imgs = Array.isArray(data.image) ? data.image : [data.image];
+            imgs.forEach(function(img) {
+              var src = typeof img === 'string' ? img : img.url;
+              if (src && imageUrls.indexOf(src) < 0 && imageUrls.length < 6) imageUrls.push(src);
+            });
+          }
+        } catch(e) {}
+      });
+    }
+
+    // Remove duplicates and filter valid URLs
+    imageUrls = imageUrls.filter(function(u, i, arr) {
+      return u && u.startsWith('http') && arr.indexOf(u) === i;
+    }).slice(0, 5);
+
+    if (imageUrls.length === 0) throw new Error('No se encontraron imagenes en esa pagina');
+
+    status.textContent = 'Encontradas ' + imageUrls.length + ' fotos. Descargando a tu storage...';
+
+    // ── Download each image and upload to Supabase Storage ──
+    var savedUrls = [];
+    for (var i = 0; i < imageUrls.length; i++) {
+      status.textContent = 'Descargando foto ' + (i+1) + ' de ' + imageUrls.length + '...';
+      try {
+        // Fetch image via proxy
+        var imgProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(imageUrls[i]);
+        var imgRes = await fetch(imgProxy);
+        var imgBlob = await imgRes.blob();
+
+        // Convert to JPEG via canvas
+        var dataUrl = await blobToJpeg(imgBlob);
+        var b64 = dataUrl.split(',')[1];
+        var byteArr = Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); });
+        var jpegBlob = new Blob([byteArr], {type:'image/jpeg'});
+
+        var fileName = 'import_' + Date.now() + '_' + i + '.jpg';
+        var upRes = await db.storage.from('imagenes-productos').upload(fileName, jpegBlob, {contentType:'image/jpeg', upsert:false});
+        if (upRes.error) throw upRes.error;
+        savedUrls.push(db.storage.from('imagenes-productos').getPublicUrl(fileName).data.publicUrl);
+      } catch(imgErr) {
+        console.warn('Could not fetch image', i, imgErr);
+      }
+    }
+
+    if (savedUrls.length === 0) throw new Error('No se pudieron descargar las imagenes');
+
+    // ── Pre-fill the form ──
+    existingImgUrls = savedUrls;
+    pendingImages = [];
+    renderExistingImgs();
+    renderPreviews();
+
+    // Try to detect marca from URL or title
+    var detectedMarca = '';
+    var marcaPatterns = [
+      {pattern: /puma/i, marca: 'Puma'},
+      {pattern: /nike/i, marca: 'Nike'},
+      {pattern: /adidas/i, marca: 'Adidas'},
+      {pattern: /new.?balance/i, marca: 'New Balance'},
+      {pattern: /reebok/i, marca: 'Reebok'},
+      {pattern: /vans/i, marca: 'Vans'},
+      {pattern: /converse/i, marca: 'Converse'},
+      {pattern: /skechers/i, marca: 'Skechers'},
+    ];
+    marcaPatterns.forEach(function(m) {
+      if (!detectedMarca && (m.pattern.test(url) || m.pattern.test(productName))) {
+        detectedMarca = m.marca;
+      }
+    });
+    if (detectedMarca) {
+      // Set marca select
+      var ms = document.getElementById('fMarca');
+      // Try to find matching option
+      var found = false;
+      for (var j = 0; j < ms.options.length; j++) {
+        if (ms.options[j].value === detectedMarca) { ms.value = detectedMarca; found = true; break; }
+      }
+      // If not in list, add it temporarily
+      if (!found) {
+        var opt = document.createElement('option');
+        opt.value = detectedMarca; opt.textContent = detectedMarca;
+        ms.appendChild(opt); ms.value = detectedMarca;
+      }
+    }
+
+    document.getElementById('importUrl').value = '';
+    status.style.color = '#1b5e20';
+    status.textContent = '✅ ' + savedUrls.length + ' fotos importadas y guardadas en tu storage.';
+    showToast('Importacion exitosa — ' + savedUrls.length + ' fotos guardadas', 'success');
+
+  } catch(err) {
+    status.style.color = '#b71c1c';
+    status.textContent = '❌ ' + err.message;
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.innerHTML = 'Importar';
+    btn.disabled = false;
+    hideLoader();
+  }
+}
+
+function blobToJpeg(blob) {
+  return new Promise(function(resolve, reject) {
+    var url = URL.createObjectURL(blob);
+    var img = new Image();
+    img.onload = function() {
+      var maxSize = 1200;
+      var w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.88));
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Error al procesar imagen')); };
+    img.src = url;
+  });
 }
 
 // ---- PAGE LOADER HELPER ----
