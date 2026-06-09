@@ -147,6 +147,15 @@
   .photo-viewer-nav button { background:rgba(255,255,255,0.15); border:none; color:white; padding:8px 18px; border-radius:50px; font-size:1rem; cursor:pointer; font-family:'Nunito',sans-serif; font-weight:700; }
 
 
+
+  /* COVER PHOTO SELECTOR */
+  .img-preview-item { cursor:pointer; transition:all 0.2s; }
+  .img-preview-item:hover { transform:scale(1.05); }
+  .img-preview-item.is-cover { border-color:#7b2ff7 !important; border-width:3px !important; }
+  .img-preview-item .cover-badge { display:none; position:absolute; bottom:0; left:0; right:0; background:linear-gradient(135deg,#7b2ff7,#f953c6); color:white; font-size:0.55rem; font-weight:900; text-align:center; padding:2px 0; letter-spacing:1px; }
+  .img-preview-item.is-cover .cover-badge { display:block; }
+  .cover-hint { font-size:0.74rem; color:#888; margin-top:6px; font-style:italic; }
+
   /* LOADING OVERLAY */
   .loading-overlay { position:fixed; inset:0; background:#f4eeff; z-index:9998; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; transition:opacity 0.4s ease; }
   .loading-overlay.hidden { opacity:0; pointer-events:none; }
@@ -335,6 +344,7 @@
         <input type="file" id="imgInput" accept="image/*,.avif,.webp,.heic,.heif,.tiff,.tif,.bmp,.svg,.jfif,.pjpeg,.pjp" multiple onchange="handleImages(event)">
       </div>
       <div class="img-previews" id="imgPreviews"></div>
+      <p class="cover-hint">Toca cualquier foto para usarla como portada en el catalogo</p>
       <div id="existingImgs" style="margin-top:8px"></div>
     </div>
     <div class="form-group" style="background:#f8f4ff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -386,6 +396,7 @@ var allProducts = [];
 var pendingImages = [];
 var existingImgUrls = [];
 var editingId = null;
+var coverIndex = 0; // index of cover photo in the combined array
 var secciones = [];
 var marcas = [];
 var config = {};
@@ -596,6 +607,7 @@ function openProductModal() {
   document.getElementById('fPrecio').value = '';
   document.getElementById('imgPreviews').innerHTML = '';
   document.getElementById('existingImgs').innerHTML = '';
+  coverIndex = 0;
   document.getElementById('fDisponible').checked = true;
   document.getElementById('importUrl').value = '';
   var st=document.getElementById('importStatus'); st.style.display='none'; st.textContent='';
@@ -617,6 +629,7 @@ function openEditModal(id) {
   document.getElementById('fTalla').value = p.talla || '';
   document.getElementById('fCodigo').value = p.codigo || '';
   document.getElementById('fPrecio').value = p.precio || '';
+  coverIndex = 0;
   document.getElementById('fDisponible').checked = p.disponible !== false;
   document.getElementById('imgPreviews').innerHTML = '';
   renderExistingImgs();
@@ -634,15 +647,43 @@ function renderExistingImgs() {
   var row = document.createElement('div');
   row.className = 'img-previews';
   existingImgUrls.forEach(function(url, i) {
+    var isCover = coverIndex === i;
     var div = document.createElement('div');
-    div.className = 'img-preview-item';
-    div.innerHTML = '<img src="'+url+'"><button class="remove-img" onclick="removeExistingImg('+i+')">x</button>';
+    div.className = 'img-preview-item' + (isCover ? ' is-cover' : '');
+    div.title = isCover ? 'Foto de portada' : 'Clic para usar como portada';
+    div.innerHTML =
+      '<img src="'+url+'">' +
+      '<div class="cover-badge">PORTADA</div>' +
+      '<button class="remove-img" onclick="event.stopPropagation();removeExistingImg('+i+')">x</button>';
+    div.onclick = (function(idx){ return function(){ setCover(idx); }; })(i);
     row.appendChild(div);
   });
   c.appendChild(row);
 }
 
-function removeExistingImg(i) { existingImgUrls.splice(i,1); renderExistingImgs(); }
+function removeExistingImg(i) {
+  // If removing cover, reset to first
+  if (coverIndex === i) coverIndex = 0;
+  else if (coverIndex > i) coverIndex--;
+  existingImgUrls.splice(i,1);
+  renderExistingImgs();
+  renderPreviews();
+}
+
+function removePendingImg(i) {
+  var offsetIdx = existingImgUrls.length + i;
+  if (coverIndex === offsetIdx) coverIndex = 0;
+  else if (coverIndex > offsetIdx) coverIndex--;
+  pendingImages.splice(i,1);
+  renderPreviews();
+}
+
+function setCover(idx) {
+  coverIndex = idx;
+  renderExistingImgs();
+  renderPreviews();
+  showToast('Foto de portada actualizada', 'success');
+}
 function closeProductModal(e) { if(e.target===document.getElementById('productModal')){ document.getElementById('productModal').classList.remove('open'); } }
 
 // ---- IMAGES ----
@@ -695,13 +736,19 @@ function renderPreviews() {
   var c = document.getElementById('imgPreviews');
   c.innerHTML = '';
   pendingImages.forEach(function(img,i){
+    var offsetIdx = existingImgUrls.length + i; // position in combined array
+    var isCover = coverIndex === offsetIdx;
     var div = document.createElement('div');
-    div.className = 'img-preview-item';
-    div.innerHTML = '<img src="'+img.dataUrl+'"><button class="remove-img" onclick="removePendingImg('+i+')">x</button>';
+    div.className = 'img-preview-item' + (isCover ? ' is-cover' : '');
+    div.title = isCover ? 'Foto de portada' : 'Clic para usar como portada';
+    div.innerHTML =
+      '<img src="'+img.dataUrl+'">' +
+      '<div class="cover-badge">PORTADA</div>' +
+      '<button class="remove-img" onclick="event.stopPropagation();removePendingImg('+i+')">x</button>';
+    div.onclick = (function(idx){ return function(){ setCover(idx); }; })(offsetIdx);
     c.appendChild(div);
   });
 }
-function removePendingImg(i) { pendingImages.splice(i,1); renderPreviews(); }
 
 // ---- SAVE PRODUCT ----
 async function saveProduct() {
@@ -725,6 +772,11 @@ async function saveProduct() {
       newUrls.push(db.storage.from('imagenes-productos').getPublicUrl(fileName).data.publicUrl);
     }
     var allUrls = existingImgUrls.concat(newUrls);
+    // Put cover photo first
+    if (coverIndex > 0 && coverIndex < allUrls.length) {
+      var cover = allUrls.splice(coverIndex, 1)[0];
+      allUrls.unshift(cover);
+    }
     var payload = {
       seccion: seccion, marca: marca,
       talla: document.getElementById('fTalla').value.trim(),
@@ -907,10 +959,11 @@ async function importFromUrl() {
   showLoader('Importando producto...');
 
   try {
-    // ── Fetch the product page via allorigins proxy (bypasses CORS) ──
-    var proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    // Use our own Netlify function as proxy (no CORS issues)
+    var proxyUrl = '/api/fetch-url?url=' + encodeURIComponent(url);
     var res = await fetch(proxyUrl);
     var json = await res.json();
+    if (json.error) throw new Error(json.error);
     var html = json.contents;
 
     if (!html) throw new Error('No se pudo acceder a la pagina');
@@ -993,11 +1046,17 @@ async function importFromUrl() {
       status.textContent = 'Descargando foto ' + (i+1) + ' de ' + imageUrls.length + '...';
       try {
         // Fetch image via proxy
-        var imgProxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(imageUrls[i]);
+        // Fetch image via our Netlify proxy
+        var imgProxy = '/api/fetch-image?url=' + encodeURIComponent(imageUrls[i]);
         var imgRes = await fetch(imgProxy);
-        var imgBlob = await imgRes.blob();
+        var imgJson = await imgRes.json();
+        if (imgJson.error) throw new Error(imgJson.error);
 
-        // Convert to JPEG via canvas
+        // Convert base64 to blob then to JPEG via canvas
+        var byteChars = atob(imgJson.data);
+        var byteNums = new Array(byteChars.length);
+        for (var k = 0; k < byteChars.length; k++) byteNums[k] = byteChars.charCodeAt(k);
+        var imgBlob = new Blob([new Uint8Array(byteNums)], {type: imgJson.contentType || 'image/jpeg'});
         var dataUrl = await blobToJpeg(imgBlob);
         var b64 = dataUrl.split(',')[1];
         var byteArr = Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); });
@@ -1017,6 +1076,7 @@ async function importFromUrl() {
     // ── Pre-fill the form ──
     existingImgUrls = savedUrls;
     pendingImages = [];
+    coverIndex = 0;
     renderExistingImgs();
     renderPreviews();
 
