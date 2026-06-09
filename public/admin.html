@@ -415,8 +415,9 @@ function closeConfirm() {
 }
 
 document.getElementById('confirmOkBtn').onclick = function() {
+  var cb = confirmCallback;  // save callback BEFORE closing (closeConfirm nulls it)
   closeConfirm();
-  if (confirmCallback) confirmCallback();
+  if (cb) cb();
 };
 
 // ---- LOGIN ----
