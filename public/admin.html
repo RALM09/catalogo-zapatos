@@ -525,15 +525,15 @@ function renderAdminCards(products) {
     else if (!p.disponible) agotadoBadge = '<div class="draft-badge">BORRADOR</div>';
     var pImgsJSON = JSON.stringify(pImgs).replace(/"/g,'&quot;');
     card.innerHTML =
-      '<div class="admin-card-img" style="cursor:zoom-in" onclick="event.stopPropagation();openPhotoViewerFromData(this)" data-imgs="'+pImgsJSON+'">'++'<img src="'+imgSrc+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'+agotadoBadge+imgCount+'</div>'+
+      '<div class="admin-card-img" style="cursor:zoom-in" onclick="event.stopPropagation();openPhotoViewerFromData(this)" data-imgs="'+pImgsJSON+'"><img src="'+imgSrc+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'+agotadoBadge+imgCount+'</div>'+
       '<div class="admin-card-body">'+
         '<div class="admin-card-marca">'+(p.seccion||'')+' &bull; '+(p.marca||'')+'</div>'+
         (p.talla?'<div class="admin-card-talla">Talla '+p.talla+'</div>':'')+
         (p.codigo?'<div class="admin-card-codigo">Cod: '+p.codigo+'</div>':'')+
         (p.precio?'<div class="admin-card-precio">'+p.precio+'</div>':'')+
         '<div class="admin-card-actions">'+
-          '<button class="btn btn-warn btn-sm" onclick="openEditModal(\''+p.id+'\')">Editar</button>'+
-          '<button class="btn btn-sm '+(p.disponible?'btn-danger':'btn-success')+'" onclick="toggleDisp(\''+p.id+'\','+!p.disponible+')">'+(p.disponible?'Agotado':'Disponible')+'</button>'+
+          '<button class="btn btn-edit btn-sm" onclick="openEditModal(\''+p.id+'\')">Editar</button>'+
+          '<button class="btn btn-sm '+(p.disponible?'btn-danger':'btn-success')+'" onclick="toggleDisp(\''+p.id+'\','+!p.disponible+')">'+(p.disponible?'📦 Ocultar':'✅ Publicar')+'</button>'+
           '<button class="btn btn-danger btn-sm" onclick="deleteProduct(\''+p.id+'\')">&#128465;</button>'+
         '</div>'+
       '</div>';
