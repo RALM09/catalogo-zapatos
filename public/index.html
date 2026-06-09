@@ -59,6 +59,13 @@
   .card-badge { position:absolute; top:7px; right:7px; color:white; font-size:0.58rem; font-weight:900; padding:2px 7px; border-radius:50px; }
   .wa-btn { display:flex; align-items:center; justify-content:center; gap:4px; background:#25d366; color:white; font-weight:800; font-size:0.72rem; padding:7px 8px; border-radius:50px; border:none; margin-top:5px; cursor:pointer; width:100%; font-family:'Nunito',sans-serif; text-decoration:none; }
 
+
+  /* LAZY LOAD FADE-IN */
+  .product-card { opacity:0; transform:translateY(24px); transition:opacity 0.45s ease, transform 0.45s ease; }
+  .product-card.visible { opacity:1; transform:translateY(0); }
+  .card-img-wrap img { opacity:0; transition:opacity 0.4s ease; background:#ede7f6; }
+  .card-img-wrap img.loaded { opacity:1; }
+
   /* MODAL */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(10,2,25,0.92); z-index:1000; align-items:flex-end; justify-content:center; }
   @media(min-width:600px){ .modal-overlay { align-items:center; padding:16px; } }
@@ -87,6 +94,16 @@
   .modal-precio { font-size:1.5rem; font-weight:900; color:#e53935; margin:4px 0 0; }
   .modal-wa-btn { display:flex; align-items:center; justify-content:center; gap:8px; background:#25d366; color:white; font-weight:900; font-size:0.9rem; padding:12px 20px; border-radius:50px; border:none; margin-top:12px; cursor:pointer; width:100%; font-family:'Nunito',sans-serif; text-decoration:none; }
 
+
+  /* LOADING OVERLAY */
+  .loading-overlay { position:fixed; inset:0; background:#f4eeff; z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; transition:opacity 0.4s ease; }
+  .loading-overlay.hidden { opacity:0; pointer-events:none; }
+  .loading-emoji { font-size:72px; display:inline-block; animation:shoeBouce 0.85s cubic-bezier(.36,.07,.19,.97) infinite; }
+  .loading-shadow { width:60px; height:10px; background:#7b2ff7; border-radius:50%; opacity:0.2; animation:shoeShadow 0.85s cubic-bezier(.36,.07,.19,.97) infinite; }
+  .loading-text { font-family:'Nunito',sans-serif; font-size:13px; font-weight:900; color:#7b2ff7; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+  @keyframes shoeBouce { 0%,100%{transform:translateY(0)} 45%,55%{transform:translateY(-28px)} }
+  @keyframes shoeShadow { 0%,100%{transform:scaleX(1);opacity:.2} 45%,55%{transform:scaleX(.5);opacity:.07} }
+
   .loading { text-align:center; padding:50px 20px; color:var(--theme-from); font-size:0.95rem; font-weight:700; grid-column:1/-1; }
   .no-results { text-align:center; padding:50px 20px; color:#bbb; font-size:0.95rem; display:none; grid-column:1/-1; }
   footer { text-align:center; padding:26px 20px; background:var(--dark); color:rgba(255,255,255,0.55); font-size:0.8rem; margin-top:36px; }
@@ -102,6 +119,11 @@
 </style>
 </head>
 <body>
+<div class="loading-overlay" id="pageLoader">
+  <span class="loading-emoji">👟</span>
+  <div class="loading-shadow"></div>
+  <div class="loading-text">Cargando catalogo...</div>
+</div>
 <div class="hero">
   <div class="hero-title" id="heroTitle">Catalogo</div>
   <div class="hero-subtitle" id="heroSubtitle">Calzado &amp; Lociones</div>
@@ -190,6 +212,48 @@ function toggleFilters(){
   btn.classList.toggle('open',filtersOpen);
 }
 
+var cardObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      cardObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+var imgObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      var img = entry.target;
+      var src = img.getAttribute('data-src');
+      if (src) {
+        img.src = src;
+        img.removeAttribute('data-src');
+        img.onload = function() { img.classList.add('loaded'); };
+        img.onerror = function() { img.classList.add('loaded'); };
+      }
+      imgObserver.unobserve(img);
+    }
+  });
+}, { threshold: 0.01, rootMargin: '100px 0px 100px 0px' });
+
+function observeCards() {
+  document.querySelectorAll('.product-card:not(.visible)').forEach(function(card, idx) {
+    // First 6 cards appear with a staggered delay for a nice cascade effect
+    if (idx < 6) {
+      setTimeout(function() { card.classList.add('visible'); }, idx * 60);
+    } else {
+      cardObserver.observe(card);
+    }
+  });
+}
+
+function observeImages() {
+  document.querySelectorAll('.card-img-wrap img[data-src]').forEach(function(img) {
+    imgObserver.observe(img);
+  });
+}
+
 async function init(){
   var cfgRes=await db.from('config').select('*');
   if(!cfgRes.error){
@@ -205,6 +269,9 @@ async function init(){
   if(!marcas.length) marcas=['Puma','Adidas','Nike','New Balance'];
   var r=await db.from('productos').select('*').eq('disponible',true).order('created_at',{ascending:false});
   document.getElementById('loadingMsg').style.display='none';
+  var loader=document.getElementById('pageLoader');
+  loader.classList.add('hidden');
+  setTimeout(function(){loader.style.display='none';},450);
   if(r.error) return;
   allProducts=r.data;
   buildFilters();
@@ -285,6 +352,8 @@ function renderCards(){
   });
   document.getElementById('noResults').style.display=visible===0?'block':'none';
   document.getElementById('statsBar').textContent='Mostrando '+visible+' producto'+(visible!==1?'s':'');
+  observeCards();
+  observeImages();
 }
 
 function buildCard(p){
@@ -302,7 +371,7 @@ function buildCard(p){
   var waHref='https://wa.me/?text='+encodeURIComponent(waMsg);
   card.innerHTML=
     badgeHTML+
-    '<div class="card-img-wrap"><img src="'+imgSrc+'" alt="'+(p.marca||'')+'" loading="lazy"></div>'+
+    '<div class="card-img-wrap"><img data-src="'+imgSrc+'" src="" alt="'+(p.marca||'')+'"></div>'+
     '<div class="card-info">'+
       '<div class="card-marca" style="color:'+t.from+'">'+(p.marca||'')+'</div>'+
       (p.talla?'<div class="card-talla">Talla '+p.talla+'</div>':'')+
@@ -339,7 +408,7 @@ function openModal(p){
   currentImgs=(p.imagenes&&p.imagenes.length>0)?p.imagenes:['https://placehold.co/400x400/f4eeff/7b2ff7?text=Sin+imagen'];
   currentCarouselIdx=0;
   // Preload all carousel images immediately
-  currentImgs.forEach(function(src){ var img=new Image(); img.src=src; });
+  currentImgs.forEach(function(src){ var img=new Image(); img.src=src; img.classList.add('loaded'); });
   var t=THEMES[p.seccion]||THEMES['all'];
   document.getElementById('modalMarca').style.color=t.from;
   document.getElementById('modalMarca').textContent=p.marca||'';

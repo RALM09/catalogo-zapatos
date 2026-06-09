@@ -146,6 +146,16 @@
   .photo-viewer-nav { display:flex; gap:12px; }
   .photo-viewer-nav button { background:rgba(255,255,255,0.15); border:none; color:white; padding:8px 18px; border-radius:50px; font-size:1rem; cursor:pointer; font-family:'Nunito',sans-serif; font-weight:700; }
 
+
+  /* LOADING OVERLAY */
+  .loading-overlay { position:fixed; inset:0; background:#f4eeff; z-index:9998; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; transition:opacity 0.4s ease; }
+  .loading-overlay.hidden { opacity:0; pointer-events:none; }
+  .loading-emoji { font-size:72px; display:inline-block; animation:shoeBouce 0.85s cubic-bezier(.36,.07,.19,.97) infinite; }
+  .loading-shadow { width:60px; height:10px; background:#7b2ff7; border-radius:50%; opacity:0.2; animation:shoeShadow 0.85s cubic-bezier(.36,.07,.19,.97) infinite; }
+  .loading-text { font-family:'Nunito',sans-serif; font-size:13px; font-weight:900; color:#7b2ff7; letter-spacing:3px; text-transform:uppercase; margin-top:4px; }
+  @keyframes shoeBouce { 0%,100%{transform:translateY(0)} 45%,55%{transform:translateY(-28px)} }
+  @keyframes shoeShadow { 0%,100%{transform:scaleX(1);opacity:.2} 45%,55%{transform:scaleX(.5);opacity:.07} }
+
   /* TOGGLE SWITCH */
   .toggle-switch { position:relative; display:inline-block; width:50px; height:26px; flex-shrink:0; }
   .toggle-switch input { opacity:0; width:0; height:0; }
@@ -185,6 +195,11 @@
   </div>
 </div>
 
+<div class="loading-overlay" id="pageLoader" style="display:none">
+  <span class="loading-emoji">👟</span>
+  <div class="loading-shadow"></div>
+  <div class="loading-text">Cargando admin...</div>
+</div>
 <div class="admin-header">
   <h1>Admin Catalogo</h1>
   <div class="header-actions">
@@ -431,6 +446,8 @@ function doLogin() {
   db.auth.signInWithPassword({email:email, password:pwd}).then(function(res) {
     if (res.error) { document.getElementById('loginError').style.display='block'; btn.innerHTML='Entrar'; btn.disabled=false; return; }
     document.getElementById('loginScreen').style.display = 'none';
+    var ldr=document.getElementById('pageLoader');
+    ldr.style.display='flex';
     loadAll();
   });
 }
@@ -470,6 +487,8 @@ async function loadAll() {
   // Load products
   var prodRes = await db.from('productos').select('*').order('created_at',{ascending:false});
   if (!prodRes.error) { allProducts = prodRes.data; renderStats(); filterProducts(); }
+  var ldr=document.getElementById('pageLoader');
+  if(ldr){ldr.classList.add('hidden');setTimeout(function(){ldr.style.display='none';},450);}
 
   buildSeccionFilter();
   renderMantenimiento();
@@ -679,6 +698,7 @@ async function saveProduct() {
   var btn = document.getElementById('saveBtn');
   btn.innerHTML = '<span class="spinner"></span> Guardando...';
   btn.disabled = true;
+  showLoader('Guardando producto...');
   try {
     // Upload new images
     var newUrls = [];
@@ -717,6 +737,7 @@ async function saveProduct() {
     showToast('Error: '+err.message,'error');
   } finally {
     btn.innerHTML = 'Guardar'; btn.disabled = false;
+    hideLoader();
   }
 }
 
@@ -728,6 +749,7 @@ function openPhotoViewerFromData(el) {
 
 // ---- TOGGLE / DELETE ----
 async function toggleDisp(id, disponible) {
+  showLoader(disponible ? 'Publicando producto...' : 'Ocultando producto...');
   try {
     var res = await db.from('productos').update({disponible: disponible}).eq('id', id).select().single();
     if (res.error) throw res.error;
@@ -738,6 +760,8 @@ async function toggleDisp(id, disponible) {
     showToast(disponible ? '✅ Producto publicado' : '📦 Producto ocultado', 'success');
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
+  } finally {
+    hideLoader();
   }
 }
 async function deleteProduct(id) {
@@ -750,6 +774,7 @@ async function deleteProduct(id) {
     'Vas a eliminar "'+label+'". Esta accion borrara el producto y sus fotos permanentemente.',
     'Si, eliminar',
     async function() {
+      showLoader('Eliminando producto...');
       try {
         // 1. Delete images from storage
         if (prod && prod.imagenes && prod.imagenes.length > 0) {
@@ -766,6 +791,8 @@ async function deleteProduct(id) {
         showToast('Producto eliminado correctamente', 'success');
       } catch(err) {
         showToast('Error al eliminar: ' + err.message, 'error');
+      } finally {
+        hideLoader();
       }
     }
   );
@@ -831,13 +858,16 @@ function removeMarca(i) {
 }
 
 async function saveConfigItem(clave, valor) {
+  showLoader('Guardando cambios...');
   var res = await db.from('config').upsert({clave:clave, valor:valor}, {onConflict:'clave'});
   if(res.error) showToast('Error guardando config: '+res.error.message,'error');
   else showToast('Guardado','success');
+  hideLoader();
 }
 
 // ---- CONFIGURACION ----
 async function saveConfig() {
+  showLoader('Guardando configuracion...');
   var nombre = document.getElementById('cfgNombre').value.trim();
   var subtitulo = document.getElementById('cfgSubtitulo').value.trim();
   var footer = document.getElementById('cfgFooter').value.trim();
@@ -846,7 +876,21 @@ async function saveConfig() {
     await db.from('config').upsert({clave:'subtitulo',valor:subtitulo},{onConflict:'clave'});
     await db.from('config').upsert({clave:'footer_texto',valor:footer},{onConflict:'clave'});
     showToast('Configuracion guardada','success');
-  } catch(err) { showToast('Error: '+err.message,'error'); }
+  } catch(err) { showToast('Error: '+err.message,'error'); } finally { hideLoader(); }
+}
+
+// ---- PAGE LOADER HELPER ----
+function showLoader(msg) {
+  var ldr = document.getElementById('pageLoader');
+  var txt = ldr.querySelector('.loading-text');
+  if (txt) txt.textContent = msg || 'Procesando...';
+  ldr.classList.remove('hidden');
+  ldr.style.display = 'flex';
+}
+function hideLoader() {
+  var ldr = document.getElementById('pageLoader');
+  ldr.classList.add('hidden');
+  setTimeout(function(){ ldr.style.display = 'none'; ldr.classList.remove('hidden'); }, 420);
 }
 
 // ---- TOAST ----
