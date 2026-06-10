@@ -44,6 +44,8 @@
   .btn-edit:hover { background:#1565c0; color:white; }
   .btn-stock  { background:#fff3e0; color:#e65100; border:1.5px solid #ffcc80; }
   .btn-stock:hover { background:#e65100; color:white; }
+  .btn-hide   { background:#f0f0f0; color:#666; border:1.5px solid #ccc; }
+  .btn-hide:hover { background:#757575; color:white; }
   .btn-delete { background:#fce4ec; color:#c62828; border:1.5px solid #ef9a9a; font-size:1rem; padding:5px 10px; }
   .btn-delete:hover { background:#c62828; color:white; }
   .btn-sm { padding:5px 12px; font-size:0.75rem; }
@@ -230,6 +232,7 @@
     <div class="stat-card"><div class="stat-num" id="statTotal">-</div><div class="stat-label">Total</div></div>
     <div class="stat-card"><div class="stat-num" id="statDama">-</div><div class="stat-label">Dama</div></div>
     <div class="stat-card"><div class="stat-num" id="statCab">-</div><div class="stat-label">Caballero</div></div>
+    <div class="stat-card"><div class="stat-num" id="statPerfumes">-</div><div class="stat-label">Perfumes</div></div>
     <div class="stat-card"><div class="stat-num" id="statOfertas">-</div><div class="stat-label">Ofertas</div></div>
     <div class="stat-card"><div class="stat-num" id="statAgotado">-</div><div class="stat-label">Borradores</div></div>
   </div>
@@ -282,8 +285,8 @@
       <input type="text" class="form-control" id="cfgNombre" placeholder="Collection Fe & Style">
     </div>
     <div class="config-card">
-      <label>Subtitulo (ej: Calzado &amp; Lociones)</label>
-      <input type="text" class="form-control" id="cfgSubtitulo" placeholder="Calzado &amp; Lociones">
+      <label>Subtitulo (ej: Calzado &amp; Perfumes)</label>
+      <input type="text" class="form-control" id="cfgSubtitulo" placeholder="Calzado &amp; Perfumes">
     </div>
     <div class="config-card">
       <label>Texto del footer</label>
@@ -296,7 +299,7 @@
 </div>
 
 <!-- MODAL PRODUCTO (ADD/EDIT) -->
-<div class="modal-overlay" id="productModal" onclick="closeProductModal(event)">
+<div class="modal-overlay" id="productModal">
   <div class="modal-box" onclick="event.stopPropagation()">
     <div class="modal-handle"></div>
     <h2 id="modalTitle">Agregar producto</h2>
@@ -318,13 +321,26 @@
         <div class="custom-select-wrap"><select class="form-control" id="fSeccion"></select></div>
       </div>
       <div class="form-group">
-        <label>Marca *</label>
+        <label for="fMarca">Marca *</label>
         <div class="custom-select-wrap"><select class="form-control" id="fMarca"></select></div>
       </div>
     </div>
+    <!-- PARA (solo perfumes) -->
+    <div class="form-group" id="fParaGroup" style="display:none">
+      <label id="fParaLabel">Genero *</label>
+      <div class="custom-select-wrap">
+        <select class="form-control" id="fPara">
+          <option value="">Selecciona...</option>
+          <option value="Dama">Dama</option>
+          <option value="Caballero">Caballero</option>
+          <option value="Unisex">Unisex</option>
+        </select>
+      </div>
+    </div>
+
     <div class="form-row">
       <div class="form-group">
-        <label>Talla</label>
+        <label id="fTallaLabel">Talla</label>
         <input type="text" class="form-control" id="fTalla" placeholder="Ej: 37, 40.5">
       </div>
       <div class="form-group">
@@ -358,7 +374,7 @@
       </label>
     </div>
     <div class="form-actions">
-      <button class="btn btn-gray" onclick="document.getElementById('productModal').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-gray" onclick="document.getElementById('productModal').classList.remove('open');document.body.style.overflow=''">Cancelar</button>
       <button class="btn btn-primary" id="saveBtn" onclick="saveProduct()">Guardar</button>
     </div>
   </div>
@@ -366,8 +382,8 @@
 
 
 <!-- PHOTO VIEWER -->
-<div class="photo-viewer" id="photoViewer" onclick="closePhotoViewer(event)">
-  <button class="photo-viewer-close" onclick="document.getElementById('photoViewer').classList.remove('open')">&#x2715;</button>
+<div class="photo-viewer" id="photoViewer">
+  <button class="photo-viewer-close" onclick="document.getElementById('photoViewer').classList.remove('open');document.body.style.overflow=''">&#x2715;</button>
   <img id="photoViewerImg" src="" alt="">
   <div class="photo-viewer-thumbs" id="photoViewerThumbs"></div>
 </div>
@@ -449,6 +465,10 @@ function showConfirm(icon, title, msg, okLabel, cb) {
 function closeConfirm() {
   document.getElementById('confirmOverlay').classList.remove('open');
   confirmCallback = null;
+  // Only restore scroll if no other modal is open
+  var productOpen = document.getElementById('productModal').classList.contains('open');
+  var photoOpen = document.getElementById('photoViewer').classList.contains('open');
+  if (!productOpen && !photoOpen) document.body.style.overflow = '';
 }
 
 document.getElementById('confirmOkBtn').onclick = function() {
@@ -502,7 +522,7 @@ async function loadAll() {
   }
   if (!secciones.length) secciones = [
     {id:'dama',label:'Dama'},{id:'caballero',label:'Caballero'},
-    {id:'lociones',label:'Lociones'},{id:'otras',label:'Otras Marcas'},{id:'ofertas',label:'Ofertas'}
+    {id:'perfumes',label:'Perfumes'},{id:'otras',label:'Otras Marcas'},{id:'ofertas',label:'Ofertas'}
   ];
   if (!marcas.length) marcas = ['Puma','Adidas','Nike','New Balance'];
 
@@ -521,6 +541,7 @@ function renderStats() {
   document.getElementById('statTotal').textContent = allProducts.length;
   document.getElementById('statDama').textContent = allProducts.filter(function(p){return p.seccion==='dama';}).length;
   document.getElementById('statCab').textContent = allProducts.filter(function(p){return p.seccion==='caballero';}).length;
+    document.getElementById('statPerfumes').textContent = allProducts.filter(function(p){return p.seccion==='perfumes';}).length;
   document.getElementById('statOfertas').textContent = allProducts.filter(function(p){return p.seccion==='ofertas';}).length;
   document.getElementById('statAgotado').textContent = allProducts.filter(function(p){return !p.disponible;}).length;
 }
@@ -569,12 +590,13 @@ function renderAdminCards(products) {
       '<div class="admin-card-img" style="cursor:zoom-in" onclick="event.stopPropagation();openPhotoViewerFromData(this)" data-imgs="'+pImgsJSON+'"><img src="'+imgSrc+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'+agotadoBadge+imgCount+'</div>'+
       '<div class="admin-card-body">'+
         '<div class="admin-card-marca">'+(p.seccion||'')+' &bull; '+(p.marca||'')+'</div>'+
-        (p.talla?'<div class="admin-card-talla">Talla '+p.talla+'</div>':'')+
+        (p.talla?'<div class="admin-card-talla">'+(p.seccion==="perfumes"?'':' Talla ')+p.talla+'</div>':'')+
         (p.codigo?'<div class="admin-card-codigo">Cod: '+p.codigo+'</div>':'')+
         (p.precio?'<div class="admin-card-precio">'+p.precio+'</div>':'')+
+        (p.genero?'<div class="admin-card-codigo" style="color:#7b2ff7;font-weight:700">Para: '+p.genero+'</div>':'')+
         '<div class="admin-card-actions">'+
           '<button class="btn btn-edit btn-sm" onclick="openEditModal(\''+p.id+'\')">Editar</button>'+
-          '<button class="btn btn-sm '+(p.disponible?'btn-danger':'btn-success')+'" onclick="toggleDisp(\''+p.id+'\','+!p.disponible+')">'+(p.disponible?'📦 Ocultar':'✅ Publicar')+'</button>'+
+          '<button class="btn btn-sm '+(p.disponible?'btn-hide':'btn-success')+'" onclick="toggleDisp(\''+p.id+'\','+!p.disponible+')">'+(p.disponible?'📦 Ocultar':'✅ Publicar')+'</button>'+
           '<button class="btn btn-danger btn-sm" onclick="deleteProduct(\''+p.id+'\')">&#128465;</button>'+
         '</div>'+
       '</div>';
@@ -594,6 +616,35 @@ function populateModalSelects() {
   var ms = document.getElementById('fMarca');
   ms.innerHTML = '<option value="">Selecciona una marca...</option>';
   marcas.forEach(function(m){ ms.innerHTML += '<option value="'+m+'">'+m+'</option>'; });
+  // Update marca label based on current section
+  updateMarcaLabel();
+  sel.onchange = function() { updateMarcaLabel(); document.getElementById('fTalla').placeholder = document.getElementById('fSeccion').value === 'perfumes' ? 'Ej: 100ml, 50ml, 3.4oz' : 'Ej: 37, 40.5'; };
+}
+
+function updateMarcaLabel() {
+  var sec = document.getElementById('fSeccion').value;
+  var label = document.querySelector('label[for="fMarca"]') ||
+              document.getElementById('fMarca').closest('.form-group').querySelector('label');
+  var paraGroup = document.getElementById('fParaGroup');
+  if (!label) return;
+  var tallaLabel = document.getElementById('fTallaLabel');
+  var paraLabel = document.getElementById('fParaLabel');
+  if (sec === 'perfumes') {
+    label.innerHTML = 'Marca <span style="color:#888;font-weight:600;font-size:0.75rem">(opcional)</span>';
+    if (paraLabel) paraLabel.innerHTML = 'Genero *';
+    paraGroup.style.display = 'block';
+    if (tallaLabel) tallaLabel.textContent = 'Contenido (ml, oz, etc)';
+  } else if (sec === 'otras' || sec === 'ofertas') {
+    label.innerHTML = 'Marca <span style="color:#888;font-weight:600;font-size:0.75rem">(opcional)</span>';
+    if (paraLabel) paraLabel.innerHTML = 'Genero <span style="color:#888;font-weight:600;font-size:0.75rem">(opcional)</span>';
+    paraGroup.style.display = 'block';
+    if (tallaLabel) tallaLabel.textContent = 'Talla';
+  } else {
+    label.innerHTML = 'Marca *';
+    paraGroup.style.display = 'none';
+    document.getElementById('fPara').value = '';
+    if (tallaLabel) tallaLabel.textContent = 'Talla';
+  }
 }
 
 function openProductModal() {
@@ -608,11 +659,13 @@ function openProductModal() {
   document.getElementById('imgPreviews').innerHTML = '';
   document.getElementById('existingImgs').innerHTML = '';
   coverIndex = 0;
+  document.getElementById('fPara').value = '';
   document.getElementById('fDisponible').checked = true;
   document.getElementById('importUrl').value = '';
   var st=document.getElementById('importStatus'); st.style.display='none'; st.textContent='';
   populateModalSelects();
   document.getElementById('productModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function openEditModal(id) {
@@ -625,9 +678,13 @@ function openEditModal(id) {
   document.getElementById('modalTitle').textContent = 'Editar producto';
   document.getElementById('fId').value = id;
   document.getElementById('fSeccion').value = p.seccion || '';
+  // Update marca label and Para field visibility AFTER setting seccion
+  updateMarcaLabel();
   document.getElementById('fMarca').value = p.marca || '';
   document.getElementById('fTalla').value = p.talla || '';
   document.getElementById('fCodigo').value = p.codigo || '';
+  // Load genero from dedicated field for all sections
+  document.getElementById('fPara').value = p.genero || '';
   document.getElementById('fPrecio').value = p.precio || '';
   coverIndex = 0;
   document.getElementById('fDisponible').checked = p.disponible !== false;
@@ -684,7 +741,7 @@ function setCover(idx) {
   renderPreviews();
   showToast('Foto de portada actualizada', 'success');
 }
-function closeProductModal(e) { if(e.target===document.getElementById('productModal')){ document.getElementById('productModal').classList.remove('open'); } }
+function closeProductModal(e) { /* backdrop click disabled - use Cancel button or X */ }
 
 // ---- IMAGES ----
 function handleImages(event) {
@@ -752,9 +809,19 @@ function renderPreviews() {
 
 // ---- SAVE PRODUCT ----
 async function saveProduct() {
-  var marca = document.getElementById('fMarca').value;
   var seccion = document.getElementById('fSeccion').value;
-  if (!marca || marca === '') { showToast('Selecciona una marca','error'); return; }
+  var marca = document.getElementById('fMarca').value;
+  if (seccion === 'perfumes') {
+    var para = document.getElementById('fPara').value;
+    if (!para) { showToast('Selecciona si es para Dama, Caballero o Unisex', 'error'); return; }
+    // genero se guarda en campo dedicado, no en marca
+  } else if (seccion === 'otras' || seccion === 'ofertas') {
+    // marca is optional for otras marcas
+    if (!marca) marca = '';
+    // genero es opcional, se guarda en campo genero
+  } else if (!marca || marca === '') {
+    showToast('Selecciona una marca', 'error'); return;
+  }
   var btn = document.getElementById('saveBtn');
   btn.innerHTML = '<span class="spinner"></span> Guardando...';
   btn.disabled = true;
@@ -782,6 +849,7 @@ async function saveProduct() {
       talla: document.getElementById('fTalla').value.trim(),
       codigo: document.getElementById('fCodigo').value.trim(),
       precio: document.getElementById('fPrecio').value.trim(),
+      genero: document.getElementById('fPara').value || '',
       imagenes: allUrls, disponible: document.getElementById('fDisponible').checked
     };
     if (editingId) {
@@ -798,6 +866,7 @@ async function saveProduct() {
     }
     renderStats(); filterProducts();
     document.getElementById('productModal').classList.remove('open');
+    document.body.style.overflow = '';
   } catch(err) {
     showToast('Error: '+err.message,'error');
   } finally {
@@ -1167,6 +1236,18 @@ function hideLoader() {
   ldr.classList.add('hidden');
   setTimeout(function(){ ldr.style.display = 'none'; ldr.classList.remove('hidden'); }, 420);
 }
+
+
+// Safety net: always restore body scroll when all modals are closed
+function checkAndRestoreScroll() {
+  var productOpen = document.getElementById('productModal') && document.getElementById('productModal').classList.contains('open');
+  var photoOpen = document.getElementById('photoViewer') && document.getElementById('photoViewer').classList.contains('open');
+  if (!productOpen && !photoOpen) {
+    document.body.style.overflow = '';
+  }
+}
+// Check every 2 seconds as fallback
+setInterval(checkAndRestoreScroll, 2000);
 
 // ---- TOAST ----
 function showToast(msg,type) {

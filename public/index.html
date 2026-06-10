@@ -126,7 +126,7 @@
 </div>
 <div class="hero">
   <div class="hero-title" id="heroTitle">Catalogo</div>
-  <div class="hero-subtitle" id="heroSubtitle">Calzado &amp; Lociones</div>
+  <div class="hero-subtitle" id="heroSubtitle">Calzado &amp; Perfumes</div>
   <div class="hero-badge">Inventario Actualizado</div>
 </div>
 
@@ -143,6 +143,7 @@
     <div class="filters-inner">
       <div class="filter-row" id="sectionFilters"></div>
       <div class="filter-row" id="marcaFilters"></div>
+      <div class="filter-row" id="generoFilters" style="display:none"></div>
     </div>
   </div>
   <div class="stats-bar" id="statsBar"></div>
@@ -168,6 +169,7 @@
       <div class="modal-marca" id="modalMarca"></div>
       <div class="modal-talla" id="modalTalla"></div>
       <div class="modal-codigo" id="modalCodigo"></div>
+      <div style="color:#7b2ff7;font-weight:700;font-size:0.88rem;margin-top:4px" id="modalGenero"></div>
       <div class="modal-precio" id="modalPrecio"></div>
       <a class="modal-wa-btn" id="modalWaBtn" href="#" target="_blank">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -184,17 +186,18 @@
 var SUPABASE_URL='https://qsrnvaxoogtvxkkfgxmi.supabase.co';
 var SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcm52YXhvb2d0dnhra2ZneG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTk4NjUsImV4cCI6MjA5NjQ5NTg2NX0.0CUHnoTPu41GjTU_Epd_g3Jmun4lXMHoWn_HqirROPA';
 var db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-var allProducts=[],secciones=[],marcas=[],nombreNegocio='Catalogo';
-var activeSection='all',activeMarca='all',searchQuery='';
-var currentCarouselIdx=0,currentImgs=[],currentProduct=null;
+
+var allProducts=[], secciones=[], marcas=[], nombreNegocio='Catalogo';
+var activeSection='all', activeMarca='all', activeGenero='all', searchQuery='';
+var currentCarouselIdx=0, currentImgs=[], currentProduct=null;
 var filtersOpen=false;
 
 var THEMES={
-  'dama':     {from:'#c2185b',to:'#f953c6',bg:'#fdf0f8'},
-  'caballero':{from:'#1565c0',to:'#0288d1',bg:'#e8f4fd'},
-  'lociones': {from:'#e65100',to:'#f9a825',bg:'#fff8e1'},
-  'ofertas':  {from:'#b71c1c',to:'#e53935',bg:'#fce4ec'},
-  'all':      {from:'#7b2ff7',to:'#f953c6',bg:'#f4eeff'}
+  'dama':      {from:'#c2185b',to:'#f953c6',bg:'#fdf0f8'},
+  'caballero': {from:'#1565c0',to:'#0288d1',bg:'#e8f4fd'},
+  'perfumes':  {from:'#e65100',to:'#f9a825',bg:'#fff8e1'},
+  'ofertas':   {from:'#b71c1c',to:'#e53935',bg:'#fce4ec'},
+  'all':       {from:'#7b2ff7',to:'#f953c6',bg:'#f4eeff'}
 };
 
 function applyTheme(sec){
@@ -206,108 +209,60 @@ function applyTheme(sec){
 
 function toggleFilters(){
   filtersOpen=!filtersOpen;
-  var col=document.getElementById('filtersCollapse');
-  var btn=document.getElementById('filterToggleBtn');
-  col.classList.toggle('open',filtersOpen);
-  btn.classList.toggle('open',filtersOpen);
+  document.getElementById('filtersCollapse').classList.toggle('open',filtersOpen);
+  document.getElementById('filterToggleBtn').classList.toggle('open',filtersOpen);
 }
 
-var cardObserver = new IntersectionObserver(function(entries) {
-  entries.forEach(function(entry) {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      cardObserver.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
-
-var imgObserver = new IntersectionObserver(function(entries) {
-  entries.forEach(function(entry) {
-    if (entry.isIntersecting) {
-      var img = entry.target;
-      var src = img.getAttribute('data-src');
-      if (src) {
-        img.src = src;
-        img.removeAttribute('data-src');
-        img.onload = function() { img.classList.add('loaded'); };
-        img.onerror = function() { img.classList.add('loaded'); };
-      }
-      imgObserver.unobserve(img);
-    }
-  });
-}, { threshold: 0.01, rootMargin: '100px 0px 100px 0px' });
-
-function observeCards() {
-  document.querySelectorAll('.product-card:not(.visible)').forEach(function(card, idx) {
-    // First 6 cards appear with a staggered delay for a nice cascade effect
-    if (idx < 6) {
-      setTimeout(function() { card.classList.add('visible'); }, idx * 60);
-    } else {
-      cardObserver.observe(card);
-    }
-  });
-}
-
-function observeImages() {
-  document.querySelectorAll('.card-img-wrap img[data-src]').forEach(function(img) {
-    imgObserver.observe(img);
-  });
-}
-
-async function init(){
-  var cfgRes=await db.from('config').select('*');
-  if(!cfgRes.error){
-    cfgRes.data.forEach(function(c){
-      if(c.clave==='secciones') secciones=JSON.parse(c.valor);
-      if(c.clave==='marcas') marcas=JSON.parse(c.valor);
-      if(c.clave==='nombre'){nombreNegocio=c.valor;document.getElementById('heroTitle').textContent=c.valor;document.getElementById('footerNombre').textContent=c.valor;document.title=c.valor;}
-      if(c.clave==='subtitulo') document.getElementById('heroSubtitle').textContent=c.valor;
-      if(c.clave==='footer_texto') document.getElementById('footerTexto').textContent=c.valor;
-    });
-  }
-  if(!secciones.length) secciones=[{id:'dama',label:'Dama'},{id:'caballero',label:'Caballero'},{id:'lociones',label:'Lociones'},{id:'otras',label:'Otras Marcas'},{id:'ofertas',label:'Ofertas'}];
-  if(!marcas.length) marcas=['Puma','Adidas','Nike','New Balance'];
-  var r=await db.from('productos').select('*').eq('disponible',true).order('created_at',{ascending:false});
-  document.getElementById('loadingMsg').style.display='none';
-  var loader=document.getElementById('pageLoader');
-  loader.classList.add('hidden');
-  setTimeout(function(){loader.style.display='none';},450);
-  if(r.error) return;
-  allProducts=r.data;
-  buildFilters();
-  renderCards();
-}
-
+// ── FILTERS ──────────────────────────────────────────────────────────────
 function buildFilters(){
+  buildSectionFilters();
+  buildMarcaFilters();
+  buildGeneroFilters();
+}
+
+function buildSectionFilters(){
   var sf=document.getElementById('sectionFilters');
   sf.innerHTML='';
-  var b=mkBtn('Todos <span class="count">('+allProducts.length+')</span>',true);
-  b.dataset.section='all'; b.onclick=function(){setSection('all');};
+  var b=mkBtn('Todos <span class="count">('+allProducts.length+')</span>', activeSection==='all');
+  b.onclick=function(){ setSection('all'); };
   sf.appendChild(b);
   secciones.forEach(function(s){
     var id=typeof s==='object'?s.id:s, label=typeof s==='object'?s.label:s;
     var cnt=allProducts.filter(function(p){return p.seccion===id;}).length;
     if(!cnt) return;
-    var btn=mkBtn(label+' <span class="count">('+cnt+')</span>',false);
-    btn.dataset.section=id; btn.onclick=function(){setSection(id);};
+    var btn=mkBtn(label+' <span class="count">('+cnt+')</span>', activeSection===id);
+    btn.onclick=(function(sid){return function(){setSection(sid);};})(id);
     sf.appendChild(btn);
   });
-  buildMarcaFilters();
 }
 
 function buildMarcaFilters(){
   var mf=document.getElementById('marcaFilters');
   mf.innerHTML='';
+  if(activeSection==='perfumes'){ mf.style.display='none'; return; }
+  mf.style.display='flex';
   var rel=activeSection==='all'?allProducts:allProducts.filter(function(p){return p.seccion===activeSection;});
-  var b=mkBtn('Todas las Marcas',activeMarca==='all');
-  b.dataset.marca='all'; b.onclick=function(){setMarca('all');};
+  var b=mkBtn('Todas las Marcas', activeMarca==='all');
+  b.onclick=function(){ setMarca('all'); };
   mf.appendChild(b);
   marcas.forEach(function(m){
     var cnt=rel.filter(function(p){return p.marca===m;}).length;
     if(!cnt) return;
-    var btn=mkBtn(m,activeMarca===m);
-    btn.dataset.marca=m; btn.onclick=function(){setMarca(m);};
+    var btn=mkBtn(m, activeMarca===m);
+    btn.onclick=(function(mv){return function(){setMarca(mv);};})(m);
     mf.appendChild(btn);
+  });
+}
+
+function buildGeneroFilters(){
+  var gf=document.getElementById('generoFilters');
+  if(activeSection!=='perfumes'){ gf.style.display='none'; return; }
+  gf.style.display='flex';
+  gf.innerHTML='';
+  [{id:'all',label:'Todos'},{id:'Dama',label:'Mujer'},{id:'Caballero',label:'Hombre'},{id:'Unisex',label:'Unisex'}].forEach(function(g){
+    var btn=mkBtn(g.label, activeGenero===g.id);
+    btn.onclick=(function(gid){return function(){setGenero(gid);};})(g.id);
+    gf.appendChild(btn);
   });
 }
 
@@ -318,33 +273,39 @@ function mkBtn(html,active){
 }
 
 function setSection(sec){
-  activeSection=sec; activeMarca='all';
+  activeSection=sec; activeMarca='all'; activeGenero='all';
   applyTheme(sec);
-  buildMarcaFilters();
-  document.querySelectorAll('[data-section]').forEach(function(b){b.classList.toggle('active',b.dataset.section===sec);});
-  // Auto-close filters on mobile after selection
-  if(window.innerWidth<768 && filtersOpen){ toggleFilters(); }
-  // Update toggle button indicator
-  document.getElementById('filterToggleBtn').classList.toggle('has-filter', sec!=='all' || activeMarca!=='all');
+  buildFilters();
+  if(window.innerWidth<768 && filtersOpen) toggleFilters();
+  document.getElementById('filterToggleBtn').classList.toggle('has-filter', sec!=='all');
   renderCards();
 }
 
 function setMarca(m){
   activeMarca=m;
-  document.querySelectorAll('[data-marca]').forEach(function(b){b.classList.toggle('active',b.dataset.marca===m);});
-  if(window.innerWidth<768 && filtersOpen){ toggleFilters(); }
-  document.getElementById('filterToggleBtn').classList.toggle('has-filter', activeSection!=='all' || m!=='all');
+  buildMarcaFilters();
+  if(window.innerWidth<768 && filtersOpen) toggleFilters();
+  document.getElementById('filterToggleBtn').classList.toggle('has-filter', activeSection!=='all'||m!=='all');
   renderCards();
 }
 
+function setGenero(g){
+  activeGenero=g;
+  buildGeneroFilters();
+  if(window.innerWidth<768 && filtersOpen) toggleFilters();
+  renderCards();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
 function renderCards(){
   var grid=document.getElementById('productsGrid');
   grid.querySelectorAll('.product-card').forEach(function(c){c.remove();});
   var q=searchQuery.toLowerCase(), visible=0;
   allProducts.forEach(function(p){
-    if(activeSection!=='all'&&p.seccion!==activeSection) return;
-    if(activeMarca!=='all'&&p.marca!==activeMarca) return;
-    if(q&&(p.codigo||'').toLowerCase().indexOf(q)<0&&(p.talla||'').toLowerCase().indexOf(q)<0&&(p.marca||'').toLowerCase().indexOf(q)<0) return;
+    if(activeSection!=='all' && p.seccion!==activeSection) return;
+    if(activeMarca!=='all' && p.marca!==activeMarca) return;
+    if(activeGenero!=='all' && p.seccion==='perfumes' && (p.genero||p.marca)!==activeGenero) return;
+    if(q && (p.codigo||'').toLowerCase().indexOf(q)<0 && (p.talla||'').toLowerCase().indexOf(q)<0 && (p.marca||'').toLowerCase().indexOf(q)<0) return;
     visible++;
     var card=buildCard(p);
     card.addEventListener('click',(function(prod){return function(){openModal(prod);};})(p));
@@ -360,21 +321,27 @@ function buildCard(p){
   var card=document.createElement('div');
   card.className='product-card';
   var t=THEMES[p.seccion]||THEMES['all'];
-  var badgeText='',badgeStyle='background:linear-gradient(135deg,'+t.from+','+t.to+')';
-  if(p.precio){badgeText='OFERTA';badgeStyle='background:linear-gradient(135deg,#e53935,#ff6f00)';}
+  var badgeText='', badgeStyle='background:linear-gradient(135deg,'+t.from+','+t.to+')';
+  if(p.precio){ badgeText='OFERTA'; badgeStyle='background:linear-gradient(135deg,#e53935,#ff6f00)'; }
   else if(p.seccion==='dama') badgeText='Dama';
-  else if(p.seccion==='caballero') badgeText='Cab.';
-  else if(p.seccion==='lociones') badgeText='Locion';
+  else if(p.seccion==='caballero') badgeText='Caballero';
+  else if(p.seccion==='perfumes'){
+    var gen=p.genero||p.marca||'';
+    badgeText=gen==='Dama'?'Mujer':gen==='Caballero'?'Hombre':gen==='Unisex'?'Unisex':'Perfume';
+    badgeStyle='background:linear-gradient(135deg,#e65100,#f9a825)';
+  } else if((p.seccion==='otras' || p.seccion==='ofertas') && p.genero){
+    var go=p.genero;
+    badgeText=go==='Dama'?'Mujer':go==='Caballero'?'Hombre':go==='Unisex'?'Unisex':'';
+  }
   var badgeHTML=badgeText?'<div class="card-badge" style="'+badgeStyle+'">'+badgeText+'</div>':'';
   var imgSrc=(p.imagenes&&p.imagenes.length>0)?p.imagenes[0]:'https://placehold.co/400x400/f4eeff/7b2ff7?text=Sin+imagen';
-  var waMsg=buildWAMsg(p);
-  var waHref='https://wa.me/?text='+encodeURIComponent(waMsg);
+  var waHref='https://wa.me/?text='+encodeURIComponent(buildWAMsg(p));
   card.innerHTML=
     badgeHTML+
     '<div class="card-img-wrap"><img data-src="'+imgSrc+'" src="" alt="'+(p.marca||'')+'"></div>'+
     '<div class="card-info">'+
       '<div class="card-marca" style="color:'+t.from+'">'+(p.marca||'')+'</div>'+
-      (p.talla?'<div class="card-talla">Talla '+p.talla+'</div>':'')+
+      (p.talla?'<div class="card-talla">'+(p.seccion==='perfumes'?'':' Talla ')+p.talla+'</div>':'')+
       (p.codigo?'<div class="card-codigo">Cod: '+p.codigo+'</div>':'')+
       (p.precio?'<div class="card-precio">'+p.precio+'</div>':'')+
       '<a class="wa-btn" href="'+waHref+'" target="_blank" onclick="event.stopPropagation()">'+
@@ -387,15 +354,16 @@ function buildCard(p){
 
 function buildWAMsg(p){
   var parts=['Hola! Me interesa este producto de '+nombreNegocio+':'];
-  // Section label
-  var secLabel = '';
+  var secLabel='';
   secciones.forEach(function(s){ if((typeof s==='object'?s.id:s)===p.seccion) secLabel=typeof s==='object'?s.label:s; });
   if(secLabel) parts.push('Categoria: '+secLabel);
-  // For lociones, marca IS the gender (Caballero/Dama), not a brand
-  if(p.seccion==='lociones'){
-    if(p.marca) parts.push('Para: '+p.marca);
+  if(p.seccion==='perfumes'){
+    if(p.genero||p.marca) parts.push('Para: '+(p.genero||p.marca));
+    if(p.talla) parts.push('Contenido: '+p.talla);
+    if(p.codigo) parts.push('Codigo: '+p.codigo);
   } else {
     if(p.marca) parts.push('Marca: '+p.marca);
+    if(p.genero && (p.seccion==='otras'||p.seccion==='ofertas')) parts.push('Para: '+p.genero);
     if(p.talla) parts.push('Talla: '+p.talla);
     if(p.codigo) parts.push('Codigo: '+p.codigo);
   }
@@ -403,18 +371,20 @@ function buildWAMsg(p){
   return parts.join('\n');
 }
 
+// ── MODAL / CAROUSEL ─────────────────────────────────────────────────────
 function openModal(p){
   currentProduct=p;
   currentImgs=(p.imagenes&&p.imagenes.length>0)?p.imagenes:['https://placehold.co/400x400/f4eeff/7b2ff7?text=Sin+imagen'];
   currentCarouselIdx=0;
-  // Preload all carousel images immediately
-  currentImgs.forEach(function(src){ var img=new Image(); img.src=src; img.classList.add('loaded'); });
+  currentImgs.forEach(function(src){var img=new Image();img.src=src;});
   var t=THEMES[p.seccion]||THEMES['all'];
   document.getElementById('modalMarca').style.color=t.from;
   document.getElementById('modalMarca').textContent=p.marca||'';
-  document.getElementById('modalTalla').textContent=p.talla?'Talla '+p.talla:'';
+  document.getElementById('modalTalla').textContent=p.talla?(p.seccion==='perfumes'?p.talla:'Talla '+p.talla):'';
   document.getElementById('modalCodigo').textContent=p.codigo?'Codigo: '+p.codigo:'';
   document.getElementById('modalPrecio').textContent=p.precio||'';
+  var generoEl=document.getElementById('modalGenero');
+  if(generoEl){var g=p.genero||(p.seccion==='perfumes'?p.marca:'');generoEl.textContent=(g&&(p.seccion==='perfumes'||p.seccion==='otras'||p.seccion==='ofertas'))?'Para: '+g:'';}
   document.getElementById('modalWaBtn').href='https://wa.me/?text='+encodeURIComponent(buildWAMsg(p));
   updateCarousel(); buildDots();
   document.getElementById('modalOverlay').classList.add('open');
@@ -423,15 +393,7 @@ function openModal(p){
 
 function updateCarousel(){
   var img=document.getElementById('carouselImg');
-  var newSrc=currentImgs[currentCarouselIdx];
-  // Only fade if image not yet loaded, otherwise instant swap
-  if(img.src===newSrc || newSrc===currentImgs[currentCarouselIdx]){
-    img.src=newSrc;
-  } else {
-    img.style.opacity='0.6';
-    img.src=newSrc;
-    img.onload=function(){ img.style.opacity='1'; };
-  }
+  img.src=currentImgs[currentCarouselIdx];
   document.getElementById('carouselCounter').textContent=(currentCarouselIdx+1)+' / '+currentImgs.length;
   document.getElementById('prevBtn').style.display=currentImgs.length>1?'flex':'none';
   document.getElementById('nextBtn').style.display=currentImgs.length>1?'flex':'none';
@@ -452,6 +414,58 @@ var touchStartX=0;
 document.getElementById('carouselArea').addEventListener('touchstart',function(e){touchStartX=e.touches[0].clientX;},{passive:true});
 document.getElementById('carouselArea').addEventListener('touchend',function(e){var d=touchStartX-e.changedTouches[0].clientX;if(Math.abs(d)>40){d>0?carouselNext():carouselPrev();}});
 function closeModal(e){if(e.target===document.getElementById('modalOverlay')){document.getElementById('modalOverlay').classList.remove('open');document.body.style.overflow='';}}
+
+// ── LAZY LOADING ──────────────────────────────────────────────────────────
+var cardObserver=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){if(entry.isIntersecting){entry.target.classList.add('visible');cardObserver.unobserve(entry.target);}});
+},{threshold:0.08,rootMargin:'0px 0px -30px 0px'});
+
+var imgObserver=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){
+      var img=entry.target;
+      var src=img.getAttribute('data-src');
+      if(src){img.src=src;img.removeAttribute('data-src');img.onload=function(){img.classList.add('loaded');};img.onerror=function(){img.classList.add('loaded');};}
+      imgObserver.unobserve(img);
+    }
+  });
+},{threshold:0.01,rootMargin:'100px 0px 100px 0px'});
+
+function observeCards(){
+  document.querySelectorAll('.product-card:not(.visible)').forEach(function(card,idx){
+    if(idx<6){setTimeout(function(){card.classList.add('visible');},idx*60);}
+    else{cardObserver.observe(card);}
+  });
+}
+function observeImages(){
+  document.querySelectorAll('.card-img-wrap img[data-src]').forEach(function(img){imgObserver.observe(img);});
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init(){
+  var cfgRes=await db.from('config').select('*');
+  if(!cfgRes.error){
+    cfgRes.data.forEach(function(c){
+      if(c.clave==='secciones') secciones=JSON.parse(c.valor);
+      if(c.clave==='marcas') marcas=JSON.parse(c.valor);
+      if(c.clave==='nombre'){nombreNegocio=c.valor;document.getElementById('heroTitle').textContent=c.valor;document.getElementById('footerNombre').textContent=c.valor;document.title=c.valor;}
+      if(c.clave==='subtitulo') document.getElementById('heroSubtitle').textContent=c.valor;
+      if(c.clave==='footer_texto') document.getElementById('footerTexto').textContent=c.valor;
+    });
+  }
+  if(!secciones.length) secciones=[{id:'dama',label:'Dama'},{id:'caballero',label:'Caballero'},{id:'perfumes',label:'Perfumes'},{id:'otras',label:'Otras Marcas'},{id:'ofertas',label:'Ofertas'}];
+  if(!marcas.length) marcas=['Puma','Adidas','Nike','New Balance'];
+  var r=await db.from('productos').select('*').eq('disponible',true).order('created_at',{ascending:false});
+  document.getElementById('loadingMsg').style.display='none';
+  var loader=document.getElementById('pageLoader');
+  loader.classList.add('hidden');
+  setTimeout(function(){loader.style.display='none';},450);
+  if(r.error) return;
+  allProducts=r.data;
+  buildFilters();
+  renderCards();
+}
+
 document.getElementById('searchInput').addEventListener('input',function(e){searchQuery=e.target.value;renderCards();});
 window.addEventListener('scroll',function(){document.getElementById('backTop').classList.toggle('visible',window.scrollY>400);});
 init();
