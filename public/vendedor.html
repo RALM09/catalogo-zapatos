@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal de Vendedores</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Nunito',sans-serif; }
+  body { background:#f4eeff; min-height:100vh; padding-bottom:40px; }
+
+  /* HEADER */
+  .header { background:linear-gradient(135deg,#7b2ff7,#f953c6); color:white; padding:18px 16px; text-align:center; position:relative; }
+  .header h1 { font-size:1.15rem; font-weight:900; }
+  .header p { font-size:0.78rem; opacity:0.9; margin-top:2px; }
+  .logout-btn { position:absolute; top:16px; right:16px; background:rgba(255,255,255,0.2); border:none; color:white; font-size:0.78rem; font-weight:800; padding:6px 14px; border-radius:50px; cursor:pointer; }
+  .logout-btn:active { background:rgba(255,255,255,0.35); }
+
+  /* LOGIN */
+  .login-wrap { display:flex; align-items:center; justify-content:center; min-height:90vh; padding:20px; }
+  .login-box { background:white; border-radius:20px; padding:28px 24px; max-width:360px; width:100%; box-shadow:0 8px 30px rgba(123,47,247,0.12); }
+  .login-box h2 { font-size:1.2rem; font-weight:900; color:#2d1b4e; margin-bottom:6px; text-align:center; }
+  .login-box .sub { font-size:0.82rem; color:#888; text-align:center; margin-bottom:20px; }
+  .form-group { margin-bottom:14px; }
+  .form-group label { display:block; font-size:0.78rem; font-weight:800; color:#2d1b4e; margin-bottom:6px; }
+  .form-control { width:100%; padding:11px 14px; border:1.5px solid #e0d5f5; border-radius:12px; font-size:0.95rem; font-family:inherit; background:#fafafe; }
+  .form-control:focus { outline:none; border-color:#7b2ff7; }
+  .login-btn { width:100%; padding:13px; border:none; border-radius:50px; background:linear-gradient(135deg,#7b2ff7,#f953c6); color:white; font-weight:900; font-size:0.95rem; cursor:pointer; margin-top:6px; }
+  .login-btn:disabled { opacity:0.6; }
+  .login-error { background:#ffebee; color:#c62828; font-size:0.8rem; font-weight:700; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; text-align:center; }
+
+  /* MAIN */
+  .main-content { display:none; padding:14px 16px; max-width:1100px; margin:0 auto; }
+  .welcome { font-size:0.95rem; font-weight:900; color:#2d1b4e; margin-bottom:12px; }
+
+  /* SEARCH & FILTERS */
+  .search-bar { width:100%; padding:11px 16px; border:1.5px solid #e0d5f5; border-radius:50px; font-size:0.9rem; font-family:inherit; background:white; margin-bottom:10px; }
+  .search-bar:focus { outline:none; border-color:#7b2ff7; }
+  .filter-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:10px; margin-bottom:6px; }
+  .filter-btn { flex-shrink:0; padding:7px 16px; border-radius:50px; border:1.5px solid #e0d5f5; background:white; color:#555; font-weight:800; font-size:0.8rem; cursor:pointer; white-space:nowrap; }
+  .filter-btn.active { background:linear-gradient(135deg,#7b2ff7,#f953c6); border-color:transparent; color:white; }
+
+  .stats-bar { font-size:0.78rem; color:#888; margin:4px 0 12px; font-weight:700; }
+
+  /* GRID */
+  .products-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media(min-width:600px){ .products-grid { grid-template-columns:repeat(3,1fr); } }
+  @media(min-width:900px){ .products-grid { grid-template-columns:repeat(4,1fr); } }
+
+  .product-card { background:white; border-radius:16px; overflow:hidden; box-shadow:0 2px 10px rgba(123,47,247,0.06); position:relative; }
+  .card-badge { position:absolute; top:8px; right:8px; font-size:0.6rem; font-weight:900; color:white; padding:3px 9px; border-radius:50px; z-index:2; }
+  .status-badge { position:absolute; top:8px; left:8px; font-size:0.6rem; font-weight:900; padding:3px 9px; border-radius:50px; z-index:2; }
+  .status-publicado { background:#e8f5e9; color:#2e7d32; }
+  .status-agotado { background:#f0f0f0; color:#888; }
+  .status-pendiente { background:linear-gradient(135deg,#ff9800,#f57c00); color:white; }
+
+  .card-img-wrap { width:100%; aspect-ratio:1/1; background:#f8f4ff; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .card-img-wrap img { width:100%; height:100%; object-fit:contain; }
+  .card-info { padding:10px 12px 12px; }
+  .card-marca { font-size:0.82rem; font-weight:900; color:#2d1b4e; line-height:1.2; }
+  .card-meta { font-size:0.74rem; color:#999; margin-top:2px; }
+  .card-precio { margin-top:8px; background:#f0eaff; border-radius:10px; padding:7px 10px; text-align:center; }
+  .card-precio .label { font-size:0.65rem; color:#7b2ff7; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; }
+  .card-precio .amount { font-size:1.1rem; font-weight:900; color:#7b2ff7; }
+  .card-precio.no-price .amount { font-size:0.82rem; color:#aaa; }
+
+  .no-results { text-align:center; padding:50px 20px; color:#aaa; font-size:0.9rem; }
+  .loading { text-align:center; padding:50px 20px; color:#aaa; font-size:0.9rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="headerTitle">Portal de Vendedores</h1>
+  <p id="headerSubtitle">Consulta precios de venta al instante</p>
+  <button class="logout-btn" id="logoutBtn" style="display:none" onclick="logout()">Salir</button>
+</div>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <h2>Iniciar sesion</h2>
+    <p class="sub">Ingresa tu usuario y PIN para consultar precios</p>
+    <div class="login-error" id="loginError"></div>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input type="text" class="form-control" id="loginUsuario" placeholder="ej: maria" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>PIN</label>
+      <input type="password" class="form-control" id="loginPin" placeholder="••••" inputmode="numeric" maxlength="6" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-content" id="mainContent">
+  <div class="welcome" id="welcomeMsg"></div>
+  <input type="text" class="search-bar" id="searchInput" placeholder="Buscar por codigo o marca...">
+  <div class="filter-row" id="sectionFilters"></div>
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="products-grid" id="productsGrid"></div>
+  <div class="no-results" id="noResults" style="display:none">No se encontraron productos</div>
+</div>
+
+<script>
+var SUPABASE_URL = 'https://qsrnvaxoogtvxkkfgxmi.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcm52YXhvb2d0dnhra2ZneG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTk4NjUsImV4cCI6MjA5NjQ5NTg2NX0.0CUHnoTPu41GjTU_Epd_g3Jmun4lXMHoWn_HqirROPA';
+var db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+var allProducts = [];
+var activeSection = 'all';
+var searchQuery = '';
+var vendedorActual = null;
+
+var THEMES = {
+  'dama':      {from:'#c2185b',to:'#f953c6'},
+  'caballero': {from:'#1565c0',to:'#0288d1'},
+  'perfumes':  {from:'#e65100',to:'#f9a825'},
+  'otras':     {from:'#7b2ff7',to:'#f953c6'},
+  'ofertas':   {from:'#b71c1c',to:'#e53935'},
+  'all':       {from:'#7b2ff7',to:'#f953c6'}
+};
+
+var SECCIONES = [
+  {id:'dama', label:'Dama'},
+  {id:'caballero', label:'Caballero'},
+  {id:'perfumes', label:'Perfumes'},
+  {id:'otras', label:'Otras Marcas'},
+  {id:'ofertas', label:'Ofertas'}
+];
+
+// ── SESION ────────────────────────────────────────────────────────────────
+function saveSession(v) {
+  try { sessionStorage.setItem('vendedor', JSON.stringify(v)); } catch(e) {}
+}
+function loadSession() {
+  try {
+    var raw = sessionStorage.getItem('vendedor');
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+function clearSession() {
+  try { sessionStorage.removeItem('vendedor'); } catch(e) {}
+}
+
+function logout() {
+  clearSession();
+  vendedorActual = null;
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('loginUsuario').value = '';
+  document.getElementById('loginPin').value = '';
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+async function doLogin() {
+  var usuario = document.getElementById('loginUsuario').value.trim().toLowerCase();
+  var pin = document.getElementById('loginPin').value.trim();
+  var errBox = document.getElementById('loginError');
+  errBox.style.display = 'none';
+
+  if (!usuario || !pin) {
+    errBox.textContent = 'Ingresa tu usuario y PIN';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+
+  try {
+    var res = await db.rpc('validar_vendedor', { p_usuario: usuario, p_pin: pin });
+    if (res.error) throw res.error;
+    if (!res.data || !res.data.length) {
+      errBox.textContent = 'Usuario o PIN incorrecto';
+      errBox.style.display = 'block';
+      return;
+    }
+    vendedorActual = res.data[0];
+    saveSession(vendedorActual);
+    showMain();
+  } catch(e) {
+    errBox.textContent = 'Error al iniciar sesion. Intenta de nuevo.';
+    errBox.style.display = 'block';
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+}
+
+document.getElementById('loginPin').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginUsuario').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') document.getElementById('loginPin').focus();
+});
+
+// ── MAIN ──────────────────────────────────────────────────────────────────
+function showMain() {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'block';
+  document.getElementById('welcomeMsg').textContent = 'Hola, ' + vendedorActual.nombre + ' \uD83D\uDC4B';
+  loadProducts();
+}
+
+async function loadProducts() {
+  document.getElementById('productsGrid').innerHTML = '<div class="loading">Cargando productos...</div>';
+  try {
+    var res = await db.rpc('get_vendedor_productos');
+    if (res.error) throw res.error;
+    allProducts = res.data || [];
+    buildFilters();
+    renderProducts();
+  } catch(e) {
+    document.getElementById('productsGrid').innerHTML = '<div class="no-results">Error cargando productos</div>';
+    console.error(e);
+  }
+}
+
+function buildFilters() {
+  var sf = document.getElementById('sectionFilters');
+  sf.innerHTML = '';
+  var bAll = mkBtn('Todos ('+allProducts.length+')', activeSection==='all');
+  bAll.onclick = function(){ setSection('all'); };
+  sf.appendChild(bAll);
+  SECCIONES.forEach(function(s) {
+    var cnt = allProducts.filter(function(p){return p.seccion===s.id;}).length;
+    if (!cnt) return;
+    var b = mkBtn(s.label+' ('+cnt+')', activeSection===s.id);
+    b.onclick = (function(id){return function(){setSection(id);};})(s.id);
+    sf.appendChild(b);
+  });
+}
+
+function mkBtn(text, active) {
+  var b = document.createElement('button');
+  b.className = 'filter-btn'+(active?' active':'');
+  b.textContent = text;
+  return b;
+}
+
+function setSection(sec) {
+  activeSection = sec;
+  buildFilters();
+  renderProducts();
+}
+
+document.getElementById('searchInput').addEventListener('input', function(e){
+  searchQuery = e.target.value.toLowerCase();
+  renderProducts();
+});
+
+function renderProducts() {
+  var grid = document.getElementById('productsGrid');
+  grid.innerHTML = '';
+  var visible = 0;
+
+  allProducts.forEach(function(p) {
+    if (activeSection !== 'all' && p.seccion !== activeSection) return;
+    if (searchQuery) {
+      var hay = ((p.codigo||'')+' '+(p.marca||'')).toLowerCase();
+      if (hay.indexOf(searchQuery) < 0) return;
+    }
+    visible++;
+    grid.appendChild(buildCard(p));
+  });
+
+  document.getElementById('noResults').style.display = visible===0 ? 'block' : 'none';
+  document.getElementById('statsBar').textContent = visible + ' producto' + (visible!==1?'s':'');
+}
+
+function buildCard(p) {
+  var t = THEMES[p.seccion] || THEMES['all'];
+  var card = document.createElement('div');
+  card.className = 'product-card';
+
+  // Status badge
+  var statusHtml = '';
+  if (p.pendiente_llegada) statusHtml = '<div class="status-badge status-pendiente">\uD83D\uDCE6 Pendiente</div>';
+  else if (!p.disponible) statusHtml = '<div class="status-badge status-agotado">Agotado</div>';
+  else statusHtml = '<div class="status-badge status-publicado">Publicado</div>';
+
+  // Genero/section badge
+  var badgeText = '';
+  if (p.seccion==='dama') badgeText='Dama';
+  else if (p.seccion==='caballero') badgeText='Caballero';
+  else if (p.seccion==='perfumes') {
+    var gen = p.genero||'';
+    badgeText = gen==='Dama'?'Mujer':gen==='Caballero'?'Hombre':gen==='Unisex'?'Unisex':'Perfume';
+  } else if (p.genero) {
+    badgeText = p.genero==='Dama'?'Mujer':p.genero==='Caballero'?'Hombre':p.genero==='Unisex'?'Unisex':'';
+  }
+  var badgeHtml = badgeText ? '<div class="card-badge" style="background:linear-gradient(135deg,'+t.from+','+t.to+')">'+badgeText+'</div>' : '';
+
+  var img = (p.imagenes && p.imagenes[0]) ? p.imagenes[0] : 'https://placehold.co/300x300/f4eeff/7b2ff7?text=Sin+foto';
+
+  var precioHtml;
+  if (p.precio_venta != null) {
+    precioHtml = '<div class="card-precio"><div class="label">Precio de venta</div><div class="amount">Q'+parseFloat(p.precio_venta).toFixed(0)+'</div></div>';
+  } else {
+    precioHtml = '<div class="card-precio no-price"><div class="label">Precio de venta</div><div class="amount">No definido</div></div>';
+  }
+
+  card.innerHTML =
+    statusHtml + badgeHtml +
+    '<div class="card-img-wrap"><img src="'+img+'" alt=""></div>'+
+    '<div class="card-info">'+
+      '<div class="card-marca">'+(p.marca||'Sin marca')+(p.talla?' '+p.talla:'')+'</div>'+
+      (p.descripcion?'<div class="card-meta" style="font-style:italic">'+p.descripcion+'</div>':'')+
+      '<div class="card-meta">Cod: '+(p.codigo||'-')+'</div>'+
+      precioHtml+
+    '</div>';
+
+  return card;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+(async function init() {
+  var cfgRes = await db.from('config').select('*').eq('clave','nombre');
+  if (!cfgRes.error && cfgRes.data.length) {
+    document.getElementById('headerTitle').textContent = cfgRes.data[0].valor + ' - Vendedores';
+  }
+
+  var saved = loadSession();
+  if (saved && saved.id) {
+    vendedorActual = saved;
+    showMain();
+  }
+})();
+</script>
+</body>
+</html>

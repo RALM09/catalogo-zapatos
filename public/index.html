@@ -167,6 +167,7 @@
     <div class="carousel-dots" id="carouselDots"></div>
     <div class="modal-info">
       <div class="modal-marca" id="modalMarca"></div>
+      <div id="modalDescripcion" style="font-size:0.85rem;color:#888;margin-top:2px"></div>
       <div class="modal-talla" id="modalTalla"></div>
       <div class="modal-codigo" id="modalCodigo"></div>
       <div style="color:#7b2ff7;font-weight:700;font-size:0.88rem;margin-top:4px" id="modalGenero"></div>
@@ -341,6 +342,7 @@ function buildCard(p){
     '<div class="card-img-wrap"><img data-src="'+imgSrc+'" src="" alt="'+(p.marca||'')+'"></div>'+
     '<div class="card-info">'+
       '<div class="card-marca" style="color:'+t.from+'">'+(p.marca||'')+'</div>'+
+      (p.descripcion?'<div class="card-desc" style="font-size:0.72rem;color:#888;margin-top:1px">'+p.descripcion+'</div>':'')+
       (p.talla?'<div class="card-talla">'+(p.seccion==='perfumes'?'':' Talla ')+p.talla+'</div>':'')+
       (p.codigo?'<div class="card-codigo">Cod: '+p.codigo+'</div>':'')+
       (p.precio?'<div class="card-precio">'+p.precio+'</div>':'')+
@@ -380,6 +382,7 @@ function openModal(p){
   var t=THEMES[p.seccion]||THEMES['all'];
   document.getElementById('modalMarca').style.color=t.from;
   document.getElementById('modalMarca').textContent=p.marca||'';
+  var descEl=document.getElementById('modalDescripcion'); if(descEl) descEl.textContent=p.descripcion||'';
   document.getElementById('modalTalla').textContent=p.talla?(p.seccion==='perfumes'?p.talla:'Talla '+p.talla):'';
   document.getElementById('modalCodigo').textContent=p.codigo?'Codigo: '+p.codigo:'';
   document.getElementById('modalPrecio').textContent=p.precio||'';
