@@ -713,6 +713,11 @@
       <input type="number" class="form-control" id="fPrecioInterno" placeholder="Ej: 550" step="1">
       <div style="font-size:0.72rem;color:#888;margin-top:4px">Este precio NUNCA se muestra en el catalogo publico</div>
     </div>
+    <div class="form-group">
+      <label>Existencias</label>
+      <input type="number" class="form-control" id="fExistencias" placeholder="1" min="1" step="1" value="1">
+      <div style="font-size:0.72rem;color:#888;margin-top:4px">Si hay más de 1 unidad, al registrar una venta solo descuenta 1 &mdash; el producto no desaparece hasta vender la última.</div>
+    </div>
 
     <!-- Propietario y costo directo (solo si NO viene de Compras) -->
     <div style="background:#fff8e1;border-radius:14px;padding:14px 16px;margin-bottom:16px">
@@ -1282,6 +1287,7 @@ function renderAdminCards(products) {
         (p.precio?'<div class="admin-card-precio">'+p.precio+'</div>':'')+
         (p.precio_interno?'<div class="admin-card-codigo" style="color:#2e7d32;font-weight:700">Precio interno: Q'+p.precio_interno+'</div>':'')+
         (p.propietario?'<div class="admin-card-codigo" style="color:#1565c0;font-weight:700"><i class="ti ti-tag" aria-hidden="true"></i> '+p.propietario+(p.ganancia_directa?' &bull; Ganancia Q'+p.ganancia_directa:'')+'</div>':'')+
+        ((p.existencias&&p.existencias>1)?'<div class="admin-card-codigo" style="color:#1b5e20;font-weight:800;background:#e8f5e9;border-radius:6px;padding:2px 8px;display:inline-block;margin-top:2px"><i class="ti ti-stack-2" aria-hidden="true"></i> '+p.existencias+' existencias</div>':'')+
         (p.genero?'<div class="admin-card-codigo" style="color:#7b2ff7;font-weight:700">Para: '+p.genero+'</div>':'')+
         '<div class="admin-card-actions-v2">'+
           '<button class="action-btn act-edit" onclick="openEditModal(\''+p.id+'\')"><i class="ti ti-edit" aria-hidden="true"></i>Editar</button>'+
@@ -1353,6 +1359,7 @@ function openProductModal() {
   document.getElementById('fPropietario').value = '';
   document.getElementById('fCostoDirecto').value = '';
   document.getElementById('fGananciaDirecta').value = '';
+  document.getElementById('fExistencias').value = '1';
   document.getElementById('fCalcPrecioVenta').value = '';
   document.getElementById('fCalcComision').value = '';
   document.getElementById('fCalcHint').textContent = 'Llena estos dos campos y calculamos el costo y tu ganancia abajo';
@@ -1391,6 +1398,7 @@ function openEditModal(id) {
   document.getElementById('fPropietario').value = p.propietario || '';
   document.getElementById('fCostoDirecto').value = (p.costo_directo != null) ? p.costo_directo : '';
   document.getElementById('fGananciaDirecta').value = (p.ganancia_directa != null) ? p.ganancia_directa : '';
+  document.getElementById('fExistencias').value = (p.existencias != null) ? p.existencias : '1';
   coverIndex = 0;
   document.getElementById('fDisponible').checked = p.disponible !== false;
   // Pendiente de llegada
@@ -1599,7 +1607,8 @@ async function saveProduct() {
       costo_directo: costoDirectoVal ? parseFloat(costoDirectoVal) : null,
       ganancia_directa: gananciaDirectaVal ? parseFloat(gananciaDirectaVal) : null,
       imagenes: allUrls, disponible: document.getElementById('fDisponible').checked,
-      pendiente_llegada: document.getElementById('fPendienteLlegada').checked
+      pendiente_llegada: document.getElementById('fPendienteLlegada').checked,
+      existencias: parseInt(document.getElementById('fExistencias').value) || 1
     };
     if (editingId) {
       var res = await db.from('productos').update(payload).eq('id',editingId).select().single();
@@ -3225,10 +3234,19 @@ async function saveVenta() {
         if (abonoRes.error) throw abonoRes.error;
       }
 
-      // Eliminar producto del catalogo (igual que el boton Eliminar)
-      var delRes = await db.from('productos').delete().eq('id',productId);
-      if (delRes.error) throw delRes.error;
-      allProducts = allProducts.filter(function(x){return x.id!==productId;});
+      // Manejar existencias: descontar si hay mas de 1, eliminar si es la ultima
+      var existencias = parseInt(p.existencias) || 1;
+      if (existencias > 1) {
+        var updRes = await db.from('productos').update({existencias: existencias - 1}).eq('id',productId).select().single();
+        if (updRes.error) throw updRes.error;
+        var pIdx = allProducts.findIndex(function(x){return x.id===productId;});
+        if (pIdx >= 0) allProducts[pIdx].existencias = existencias - 1;
+      } else {
+        // Ultima unidad: eliminar del catalogo
+        var delRes = await db.from('productos').delete().eq('id',productId);
+        if (delRes.error) throw delRes.error;
+        allProducts = allProducts.filter(function(x){return x.id!==productId;});
+      }
       renderStats(); filterProducts();
 
       showToast('Venta registrada','success');
