@@ -256,6 +256,8 @@
   .compras-badge { font-size:0.72rem; font-weight:900; padding:4px 10px; border-radius:50px; white-space:nowrap; }
   .compras-arrow { color:#7b2ff7; font-size:1.1rem; display:flex; align-items:center; transition:transform 0.2s; }
   .compras-arrow.rotated { transform:rotate(90deg); }
+  .btn-ver-detalle { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; border:1.5px solid #7b2ff7; background:white; color:#7b2ff7; font-family:'Nunito',sans-serif; font-weight:800; font-size:0.74rem; cursor:pointer; white-space:nowrap; transition:background 0.15s,color 0.15s; }
+  .btn-ver-detalle:hover { background:#7b2ff7; color:white; }
   .compras-card-detail { display:none; border-top:1px solid #f0eaff; padding:14px 16px; }
   .compras-card-detail.open { display:block; }
   .compras-detail-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
@@ -1895,6 +1897,7 @@ function renderCajas() {
           '<span class="compras-badge" style="background:'+cajaBadgeColor+';color:'+cajaBadgeText7+'">'+factCount+' fact &bull; '+prodCount+'/'+(metaCaja||'?')+' prod'+cajaCuadre+'</span>'+
           '<button class="icon-btn ic-edit" onclick="event.stopPropagation();editCaja(\''+caja.id+'\')" aria-label="Editar caja"><i class="ti ti-edit" aria-hidden="true"></i></button>'+
           '<button class="icon-btn ic-delete" onclick="event.stopPropagation();deleteCaja(\''+caja.id+'\')" aria-label="Eliminar caja"><i class="ti ti-trash" aria-hidden="true"></i></button>'+
+          '<button class="btn-ver-detalle" onclick="event.stopPropagation();toggleCaja(\''+caja.id+'\')" ><i class="ti ti-list" aria-hidden="true"></i> Ver facturas</button>'+
           '<span class="compras-arrow" id="cajaArrow_'+caja.id+'"><i class="ti ti-chevron-right" aria-hidden="true"></i></span>'+
         '</div>'+
       '</div>'+
@@ -1946,6 +1949,7 @@ async function loadFacturas(cajaId) {
             '<button class="btn btn-primary" style="padding:6px 12px;font-size:0.74rem" onclick="event.stopPropagation();openCompraProductoModal(\''+fac.id+'\','+fpp+','+tc+')"><i class="ti ti-plus" aria-hidden="true"></i> Producto</button>'+
             '<button class="icon-btn ic-edit" onclick="event.stopPropagation();editFactura(\''+fac.id+'\',\''+cajaId+'\')" aria-label="Editar factura"><i class="ti ti-edit" aria-hidden="true"></i></button>'+
             '<button class="icon-btn ic-delete" onclick="event.stopPropagation();deleteFactura(\''+fac.id+'\',\''+cajaId+'\')" aria-label="Eliminar factura"><i class="ti ti-trash" aria-hidden="true"></i></button>'+
+            '<button class="btn-ver-detalle" onclick="event.stopPropagation();toggleFactura(\''+fac.id+'\')" ><i class="ti ti-shopping-bag" aria-hidden="true"></i> Ver productos</button>'+
             '<span class="compras-arrow" id="facArrow_'+fac.id+'"><i class="ti ti-chevron-right" aria-hidden="true"></i></span>'+
           '</div>'+
         '</div>'+
@@ -2159,6 +2163,7 @@ async function openCompraProductoModal(facturaId, fpp, tc) {
   document.getElementById('cpPublicar').checked = false;
   document.getElementById('cpFoundBox').style.display='none';
   document.getElementById('cpVincularLabel').textContent='Crear este producto en el catalogo';
+  document.getElementById('cpCrearCatalogoWrap').style.display = 'flex';
   document.getElementById('cpId').value='';
   document.getElementById('cpFacturaId').value=facturaId;
   document.getElementById('cpCajaFlete').value=fpp;
@@ -2367,7 +2372,6 @@ function buscarProductoExistente() {
   var toggleWrap = document.getElementById('cpCrearCatalogoWrap');
 
   if (found) {
-    // Show found product preview - DO NOT prefill/modify anything
     var img = (found.imagenes && found.imagenes[0]) ? found.imagenes[0] : 'https://placehold.co/60x60/f4eeff/7b2ff7?text=?';
     var estado = found.disponible
       ? '<span style="color:#1b5e20;font-weight:700">Publicado</span>'
@@ -2376,14 +2380,14 @@ function buscarProductoExistente() {
       '<div style="display:flex;gap:10px;align-items:center;background:#e8f5e9;border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1.5px solid #a5d6a7">'+
         '<img src="'+img+'" style="width:48px;height:48px;object-fit:contain;background:white;border-radius:8px">'+
         '<div style="flex:1">'+
-          '<div style="font-weight:900;font-size:0.85rem;color:#1b5e20">✅ Producto encontrado en catálogo</div>'+
+          '<div style="font-weight:900;font-size:0.85rem;color:#1b5e20">&#x2705; Producto encontrado en catálogo</div>'+
           '<div style="font-size:0.78rem;color:#388e3c;margin-top:2px">'+(found.marca||'')+' '+(found.talla||'')+' &bull; '+found.seccion+' &bull; '+estado+'</div>'+
         '</div>'+
       '</div>';
     box.style.display = 'block';
     document.getElementById('cpVincularLabel').textContent = 'Vincular esta compra a este producto (no se modificara el producto)';
     document.getElementById('cpCrearCatalogo').checked = true;
-    catalogoSection.style.display = 'none'; // hide creation fields - product already exists
+    catalogoSection.style.display = 'none';
   } else {
     box.style.display = 'none';
     document.getElementById('cpVincularLabel').textContent = 'Crear este producto en el catalogo';
@@ -2493,7 +2497,7 @@ async function editCompraProducto(id, facturaId) {
         '<div style="display:flex;gap:10px;align-items:center;background:#e8f5e9;border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1.5px solid #a5d6a7">'+
           '<img src="'+img+'" style="width:48px;height:48px;object-fit:contain;background:white;border-radius:8px">'+
           '<div style="flex:1">'+
-            '<div style="font-weight:900;font-size:0.85rem;color:#1b5e20">✅ Vinculado al catalogo</div>'+
+            '<div style="font-weight:900;font-size:0.85rem;color:#1b5e20">&#x2705; Vinculado al catalogo</div>'+
             '<div style="font-size:0.78rem;color:#388e3c;margin-top:2px">'+(linked.marca||'')+' '+(linked.talla||'')+' &bull; '+linked.seccion+' &bull; '+estado+'</div>'+
           '</div>'+
         '</div>';
