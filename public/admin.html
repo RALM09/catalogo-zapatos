@@ -2072,7 +2072,10 @@ function toggleCaja(cajaId) {
   var isOpen=detail.classList.contains('open');
   detail.classList.toggle('open', !isOpen);
   arrow.classList.toggle('rotated', !isOpen);
-  if (!isOpen) loadFacturas(cajaId);
+  if (!isOpen) {
+    loadFacturas(cajaId);
+    setTimeout(function(){ detail.scrollIntoView({behavior:'smooth', block:'start'}); }, 120);
+  }
 }
 
 async function loadFacturas(cajaId) {
@@ -2119,6 +2122,9 @@ function toggleFactura(facId) {
   var isOpen=d.classList.contains('open');
   d.classList.toggle('open', !isOpen);
   a.classList.toggle('rotated', !isOpen);
+  if (!isOpen) {
+    setTimeout(function(){ d.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+  }
 }
 
 function renderProductosFactura(productos) {
@@ -2353,6 +2359,10 @@ async function openCompraProductoModal(facturaId, fpp, tc, propietario) {
   // Cargar info de la factura (totales declarados) y sus productos ya guardados
   document.getElementById('compraProductoModal').classList.add('open');
   document.body.style.overflow='hidden';
+  setTimeout(function(){
+    var box = document.querySelector('#compraProductoModal .modal-box');
+    if (box) box.scrollTop = 0;
+  }, 30);
   await cargarInfoFactura(facturaId, null);
   calcularCosto();
 }
