@@ -727,7 +727,7 @@
       <div class="form-group" style="margin-bottom:8px">
         <label>Propietario</label>
         <div class="custom-select-wrap">
-          <select class="form-control" id="fPropietario">
+          <select class="form-control" id="fPropietario" onchange="toggleRaulFields()">
             <option value="">Sin definir</option>
             <option value="Miriam">Miriam</option>
             <option value="Raul">Raul</option>
@@ -759,6 +759,32 @@
         <div class="form-group" style="margin-bottom:0">
           <label>Ganancia mia (Q)</label>
           <input type="number" class="form-control" id="fGananciaDirecta" placeholder="Ej: 140" step="0.01">
+        </div>
+      </div>
+
+      <!-- Campos extra cuando Raul es el propietario -->
+      <div id="fRaulFields" style="display:none;margin-top:12px;background:#e3f2fd;border-radius:10px;padding:12px 14px;border:1.5px solid #90caf9">
+        <div style="font-size:0.78rem;font-weight:900;color:#1565c0;margin-bottom:10px">
+          <i class="ti ti-users" aria-hidden="true"></i> Distribución de ganancias (Raul propietario)
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label style="font-size:0.78rem">Ganancia Raul (Q)</label>
+            <input type="number" class="form-control" id="fGananciaRaul" oninput="actualizarResumenRaul()" placeholder="Ej: 200" step="0.01">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label style="font-size:0.78rem">Ganancia Miriam (Q)</label>
+            <input type="number" class="form-control" id="fGananciaMiriam" oninput="actualizarResumenRaul()" placeholder="Ej: 100" step="0.01">
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:8px">
+          <div class="form-group" style="margin-bottom:0">
+            <label style="font-size:0.78rem">Ganancia vendedor (Q)</label>
+            <input type="number" class="form-control" id="fGananciaVendedor" oninput="actualizarResumenRaul()" placeholder="Ej: 50" step="0.01">
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <div id="fRaulResumen" style="background:white;border-radius:8px;padding:8px 10px;font-size:0.74rem;color:#1565c0;height:100%;display:flex;align-items:center"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1004,19 +1030,44 @@
         </div>
       </div>
 
+      <!-- Propietario y distribucion de ganancias (propietario viene de la factura) -->
+      <div id="cpRaulWrap" style="display:none;background:#fff8e1;border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1px solid #ffe082">
+        <input type="hidden" id="cpPropietario" value="">
+        <!-- Campos de distribucion solo para Raul -->
+        <div id="cpRaulFields" style="display:none;margin-top:12px;background:#e3f2fd;border-radius:10px;padding:12px 14px;border:1.5px solid #90caf9">
+          <div style="font-size:0.78rem;font-weight:900;color:#1565c0;margin-bottom:10px">
+            <i class="ti ti-users" aria-hidden="true"></i> Distribución de ganancias (Raul propietario)
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:0">
+              <label style="font-size:0.78rem">Ganancia Raul (Q)</label>
+              <input type="number" class="form-control" id="cpGananciaRaul" placeholder="Ej: 200" step="0.01" oninput="actualizarResumenCpRaul()">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label style="font-size:0.78rem">Ganancia Miriam (Q)</label>
+              <input type="number" class="form-control" id="cpGananciaMiriam" placeholder="Ej: 100" step="0.01" oninput="actualizarResumenCpRaul()">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:8px">
+            <div class="form-group" style="margin-bottom:0">
+              <label style="font-size:0.78rem">Ganancia vendedor (Q)</label>
+              <input type="number" class="form-control" id="cpGananciaVendedor" placeholder="Ej: 50" step="0.01" oninput="actualizarResumenCpRaul()">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <div id="cpRaulResumen" style="background:white;border-radius:8px;padding:8px 10px;font-size:0.74rem;color:#1565c0;height:100%;display:flex;align-items:center"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Producto encontrado en catalogo (preview) -->
       <div id="cpFoundBox" style="display:none"></div>
 
-      <!-- Crear/Vincular toggle -->
-      <div id="cpCrearCatalogoWrap" style="background:#f8f4ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div>
-          <div style="font-weight:800;font-size:0.88rem;color:#2d1b4e" id="cpVincularLabel">Crear este producto en el catalogo</div>
-          <div style="font-size:0.75rem;color:#888;margin-top:2px" id="cpCatalogoHint">Esto NO modificara productos existentes, solo crea uno nuevo o vincula esta compra</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="cpCrearCatalogo" checked>
-          <span class="toggle-slider"></span>
-        </label>
+      <!-- Crear/Vincular: ahora se decide por busqueda. Campos siempre visibles si no hay vinculo -->
+      <input type="checkbox" id="cpCrearCatalogo" checked style="display:none">
+      <div id="cpCrearCatalogoWrap" style="display:none">
+        <div id="cpVincularLabel"></div>
+        <div id="cpCatalogoHint"></div>
       </div>
 
       <!-- Campos de catalogo (solo si se activa) -->
@@ -1383,6 +1434,10 @@ function openProductModal() {
   document.getElementById('fPropietario').value = '';
   document.getElementById('fCostoDirecto').value = '';
   document.getElementById('fGananciaDirecta').value = '';
+  document.getElementById('fGananciaRaul').value = '';
+  document.getElementById('fGananciaMiriam').value = '';
+  document.getElementById('fGananciaVendedor').value = '';
+  toggleRaulFields();
   document.getElementById('fExistencias').value = '1';
   document.getElementById('fCalcPrecioVenta').value = '';
   document.getElementById('fCalcComision').value = '';
@@ -1426,6 +1481,10 @@ function openEditModal(id) {
   document.getElementById('fPrecio').value = p.precio || '';
   document.getElementById('fPrecioInterno').value = (p.precio_interno != null) ? p.precio_interno : '';
   document.getElementById('fPropietario').value = p.propietario || '';
+  document.getElementById('fGananciaRaul').value = (p.ganancia_raul != null) ? p.ganancia_raul : '';
+  document.getElementById('fGananciaMiriam').value = (p.ganancia_miriam != null) ? p.ganancia_miriam : '';
+  document.getElementById('fGananciaVendedor').value = (p.ganancia_vendedor != null) ? p.ganancia_vendedor : '';
+  toggleRaulFields();
   document.getElementById('fCostoDirecto').value = (p.costo_directo != null) ? p.costo_directo : '';
   document.getElementById('fGananciaDirecta').value = (p.ganancia_directa != null) ? p.ganancia_directa : '';
   document.getElementById('fExistencias').value = (p.existencias != null) ? p.existencias : '1';
@@ -1585,6 +1644,48 @@ function calcularGananciaDirecta() {
   hint.innerHTML = 'Calculado con '+(porcGanancia*100).toFixed(0)+'% de ganancia &bull; Puedes ajustar los valores manualmente abajo';
 }
 
+function toggleCpRaulFields() {
+  var prop = document.getElementById('cpPropietario').value;
+  var outerWrap = document.getElementById('cpRaulWrap');
+  var innerFields = document.getElementById('cpRaulFields');
+  if (outerWrap) outerWrap.style.display = (prop === 'Raul') ? 'block' : 'none';
+  if (innerFields) innerFields.style.display = (prop === 'Raul') ? 'block' : 'none';
+  actualizarResumenCpRaul();
+}
+
+function actualizarResumenCpRaul() {
+  var resumen = document.getElementById('cpRaulResumen');
+  if (!resumen) return;
+  var raul = parseFloat(document.getElementById('cpGananciaRaul').value) || 0;
+  var miriam = parseFloat(document.getElementById('cpGananciaMiriam').value) || 0;
+  var vend = parseFloat(document.getElementById('cpGananciaVendedor').value) || 0;
+  var total = raul + miriam + vend;
+  resumen.innerHTML = total > 0
+    ? '<div><div style="font-weight:900;color:#1565c0;font-size:0.76rem">Total distribuido</div><div style="font-size:1rem;font-weight:900;color:#0d47a1">Q'+total.toFixed(2)+'</div></div>'
+    : '<span style="color:#aaa">Total aquí</span>';
+}
+
+function toggleRaulFields() {
+  var prop = document.getElementById('fPropietario').value;
+  var wrap = document.getElementById('fRaulFields');
+  if (wrap) wrap.style.display = (prop === 'Raul') ? 'block' : 'none';
+  actualizarResumenRaul();
+}
+
+function actualizarResumenRaul() {
+  var resumen = document.getElementById('fRaulResumen');
+  if (!resumen) return;
+  var raul = parseFloat(document.getElementById('fGananciaRaul').value) || 0;
+  var miriam = parseFloat(document.getElementById('fGananciaMiriam').value) || 0;
+  var vend = parseFloat(document.getElementById('fGananciaVendedor').value) || 0;
+  var total = raul + miriam + vend;
+  if (total > 0) {
+    resumen.innerHTML = '<div style="font-weight:900;color:#1565c0;font-size:0.76rem">Total distribuido</div><div style="font-size:1rem;font-weight:900;color:#0d47a1">Q'+total.toFixed(2)+'</div>';
+  } else {
+    resumen.innerHTML = '<span style="color:#aaa">Total aparecerá aquí</span>';
+  }
+}
+
 // ---- SAVE PRODUCT ----
 function showModalError(msg) {
   var b = document.getElementById('modalErrorBanner');
@@ -1636,6 +1737,9 @@ async function saveProduct() {
       precio_interno: precioInternoVal ? parseFloat(precioInternoVal) : null,
       genero: document.getElementById('fPara').value || '',
       propietario: document.getElementById('fPropietario').value || null,
+      ganancia_raul: document.getElementById('fGananciaRaul').value ? parseFloat(document.getElementById('fGananciaRaul').value) : null,
+      ganancia_miriam: document.getElementById('fGananciaMiriam').value ? parseFloat(document.getElementById('fGananciaMiriam').value) : null,
+      ganancia_vendedor: document.getElementById('fGananciaVendedor').value ? parseFloat(document.getElementById('fGananciaVendedor').value) : null,
       costo_directo: costoDirectoVal ? parseFloat(costoDirectoVal) : null,
       ganancia_directa: gananciaDirectaVal ? parseFloat(gananciaDirectaVal) : null,
       imagenes: allUrls, disponible: document.getElementById('fDisponible').checked,
@@ -1987,7 +2091,7 @@ async function loadFacturas(cajaId) {
             '<div class="compras-card-sub">'+prodCount+' productos &bull; Costo total Q'+Math.round(totalCosto).toLocaleString()+'</div>'+
           '</div>'+
           '<div class="compras-card-actions">'+
-            '<button class="btn btn-primary" style="padding:6px 12px;font-size:0.74rem" onclick="event.stopPropagation();openCompraProductoModal(\''+fac.id+'\','+fpp+','+tc+')"><i class="ti ti-plus" aria-hidden="true"></i> Producto</button>'+
+            '<button class="btn btn-primary" style="padding:6px 12px;font-size:0.74rem" onclick="event.stopPropagation();openCompraProductoModal(\''+fac.id+'\','+fpp+','+tc+',\''+fac.propietario+'\')" ><i class="ti ti-plus" aria-hidden="true"></i> Producto</button>'+
             '<button class="icon-btn ic-edit" onclick="event.stopPropagation();editFactura(\''+fac.id+'\',\''+cajaId+'\')" aria-label="Editar factura"><i class="ti ti-edit" aria-hidden="true"></i></button>'+
             '<button class="icon-btn ic-delete" onclick="event.stopPropagation();deleteFactura(\''+fac.id+'\',\''+cajaId+'\')" aria-label="Eliminar factura"><i class="ti ti-trash" aria-hidden="true"></i></button>'+
             '<button class="btn-ver-detalle" onclick="event.stopPropagation();toggleFactura(\''+fac.id+'\')" ><i class="ti ti-shopping-bag" aria-hidden="true"></i> Ver productos</button>'+
@@ -2196,7 +2300,7 @@ function deleteFactura(facId, cajaId) {
 var cpFacturaInfo = null; // {total_impuesto, total_factura} de la factura activa
 var cpOtrosProductos = []; // productos ya guardados en la factura (excluyendo el que se edita)
 
-async function openCompraProductoModal(facturaId, fpp, tc) {
+async function openCompraProductoModal(facturaId, fpp, tc, propietario) {
   cpProductoVinculado = null;
   cpPendingImages = [];
   cpCoverIndex = 0;
@@ -2209,6 +2313,11 @@ async function openCompraProductoModal(facturaId, fpp, tc) {
   document.getElementById('cpVinculadoCard').style.display = 'none';
   document.getElementById('cpExistencias').value = '1';
   document.getElementById('cpVincularLabel').textContent='Crear este producto en el catalogo';
+  document.getElementById('cpPropietario').value = propietario || 'Miriam';
+  document.getElementById('cpGananciaRaul').value = '';
+  document.getElementById('cpGananciaMiriam').value = '';
+  document.getElementById('cpGananciaVendedor').value = '';
+  toggleCpRaulFields();
   document.getElementById('cpId').value='';
   document.getElementById('cpFacturaId').value=facturaId;
   document.getElementById('cpCajaFlete').value=fpp;
@@ -2224,7 +2333,6 @@ async function openCompraProductoModal(facturaId, fpp, tc) {
   document.getElementById('cpCrearCatalogo').checked=true;
   document.getElementById('cpCatalogoFields').style.display='block';
   document.getElementById('compraProductoTitle').textContent='Agregar producto';
-  document.getElementById('cpCatalogoHint').textContent='El producto se agregara al catalogo publico';
   var secSel=document.getElementById('cpSeccion');
   secSel.innerHTML='';
   secciones.forEach(function(s){var id=typeof s==='object'?s.id:s,label=typeof s==='object'?s.label:s;secSel.innerHTML+='<option value="'+id+'">'+label+'</option>';});
@@ -2470,7 +2578,6 @@ function seleccionarProductoExistente(prod) {
     '<div style="font-size:0.74rem;color:#388e3c">'+det+'</div>'+
     '<div style="font-size:0.71rem;color:#66bb6a;margin-top:6px">Podés ajustar código y nombre si lo necesitás.</div></div>';
   document.getElementById('cpVinculadoCard').style.display='block';
-  document.getElementById('cpCrearCatalogoWrap').style.display='none';
   document.getElementById('cpCatalogoFields').style.display='none';
 }
 
@@ -2486,8 +2593,7 @@ function limpiarVinculoExistente() {
   var e=document.getElementById('cpExistencias'); if(e) e.value='1';
   cpPendingImages=[]; cpCoverIndex=0;
   document.getElementById('cpImgPreviews').innerHTML='';
-  document.getElementById('cpCrearCatalogoWrap').style.display='flex';
-  document.getElementById('cpCatalogoFields').style.display=document.getElementById('cpCrearCatalogo').checked?'block':'none';
+  document.getElementById('cpCatalogoFields').style.display='block';
 }
 
 function buscarProductoExistente() {
@@ -2496,10 +2602,7 @@ function buscarProductoExistente() {
   if (found && !cpProductoVinculado) seleccionarProductoExistente(found);
 }
 
-document.getElementById('cpCrearCatalogo').onchange = function() {
-  var showFields = this.checked && !cpProductoVinculado;
-  document.getElementById('cpCatalogoFields').style.display = showFields ? 'block' : 'none';
-};
+// cpCrearCatalogo now controlled by search flow (cpProductoVinculado)
 
 document.addEventListener('click', function(e) {
   var wrap=document.getElementById('cpBuscarWrap');
@@ -2517,7 +2620,7 @@ async function saveCompraProducto() {
   var precioFinal=parseFloat(document.getElementById('cpPrecioFinal').value)||Math.round(calc.precioVenta);
   var precioVendFinal=parseFloat(document.getElementById('cpPrecioVendedorFinal').value)||Math.round(calc.precioVendedor);
   var facturaId=document.getElementById('cpFacturaId').value;
-  var crearCatalogo=document.getElementById('cpCrearCatalogo').checked;
+  var crearCatalogo=!cpProductoVinculado; // Si no hay vinculo, siempre crear en catalogo
   showLoader('Guardando producto...');
   try {
     var productoCatId=null;
@@ -2558,7 +2661,11 @@ async function saveCompraProducto() {
     }
     // else: no se vincula ni crea nada en el catalogo, solo se guarda el registro de compra
 
-    var fpPayload={factura_id:facturaId,codigo:codigo,nombre:document.getElementById('cpNombre').value.trim(),precio_dolares:precio,impuesto_dolares:impuesto,costo_quetzales:Math.round(calc.costoTotal*100)/100,ganancia_mia:Math.round(calc.gananciaMia*100)/100,precio_venta:precioFinal,precio_vendedor:precioVendFinal,producto_id:productoCatId};
+    var cpProp=document.getElementById('cpPropietario').value||'Miriam';
+    var cpGRaul=document.getElementById('cpGananciaRaul').value?parseFloat(document.getElementById('cpGananciaRaul').value):null;
+    var cpGMiriam=document.getElementById('cpGananciaMiriam').value?parseFloat(document.getElementById('cpGananciaMiriam').value):null;
+    var cpGVend=document.getElementById('cpGananciaVendedor').value?parseFloat(document.getElementById('cpGananciaVendedor').value):null;
+    var fpPayload={factura_id:facturaId,codigo:codigo,nombre:document.getElementById('cpNombre').value.trim(),precio_dolares:precio,impuesto_dolares:impuesto,costo_quetzales:Math.round(calc.costoTotal*100)/100,ganancia_mia:Math.round(calc.gananciaMia*100)/100,precio_venta:precioFinal,precio_vendedor:precioVendFinal,producto_id:productoCatId,propietario:cpProp,ganancia_raul:cpGRaul,ganancia_miriam:cpGMiriam,ganancia_vendedor:cpGVend};
     var id=document.getElementById('cpId').value;
     var res=id?await db.from('factura_productos').update(fpPayload).eq('id',id):await db.from('factura_productos').insert(fpPayload);
     if (res.error) throw res.error;
@@ -2588,6 +2695,11 @@ async function editCompraProducto(id, facturaId) {
   // Re-cargar excluyendo este producto para que la validacion no lo cuente doble
   await cargarInfoFactura(p.factura_id, p.id);
   document.getElementById('cpId').value=p.id;
+  document.getElementById('cpPropietario').value = p.propietario || 'Miriam';
+  document.getElementById('cpGananciaRaul').value = (p.ganancia_raul != null) ? p.ganancia_raul : '';
+  document.getElementById('cpGananciaMiriam').value = (p.ganancia_miriam != null) ? p.ganancia_miriam : '';
+  document.getElementById('cpGananciaVendedor').value = (p.ganancia_vendedor != null) ? p.ganancia_vendedor : '';
+  toggleCpRaulFields();
   document.getElementById('cpCodigo').value=p.codigo;
   document.getElementById('cpNombre').value=p.nombre||'';
   document.getElementById('cpPrecio').value=p.precio_dolares;
@@ -2599,9 +2711,7 @@ async function editCompraProducto(id, facturaId) {
     var linked = allProducts.find(function(x){return x.id===p.producto_id;});
     if (linked) { seleccionarProductoExistente(linked); }
   } else {
-    document.getElementById('cpCrearCatalogo').checked = true;
     document.getElementById('cpCatalogoFields').style.display='block';
-    document.getElementById('cpVincularLabel').textContent='Crear este producto en el catalogo';
   }
   calcularCosto();
 }
