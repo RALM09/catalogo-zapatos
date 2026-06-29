@@ -713,10 +713,16 @@
       <input type="number" class="form-control" id="fPrecioInterno" placeholder="Ej: 550" step="1">
       <div style="font-size:0.72rem;color:#888;margin-top:4px">Este precio NUNCA se muestra en el catalogo publico</div>
     </div>
-    <div class="form-group">
-      <label>Existencias</label>
-      <input type="number" class="form-control" id="fExistencias" placeholder="1" min="1" step="1" value="1">
-      <div style="font-size:0.72rem;color:#888;margin-top:4px">Si hay más de 1 unidad, al registrar una venta solo descuenta 1 — el producto no desaparece hasta vender la última.</div>
+    <!-- Inventario -->
+    <div style="background:#e8f5e9;border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1.5px solid #a5d6a7">
+      <div style="font-size:0.8rem;font-weight:900;color:#1b5e20;margin-bottom:8px"><i class="ti ti-stack-2" aria-hidden="true"></i> Inventario</div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Existencias</label>
+          <input type="number" class="form-control" id="fExistencias" placeholder="1" min="1" step="1" value="1">
+          <div style="font-size:0.72rem;color:#888;margin-top:4px">Unidades disponibles. Al vender, se descuenta 1. Cuando llega a 0 desaparece del catálogo.</div>
+        </div>
+      </div>
     </div>
 
     <!-- Propietario y costo directo (solo si NO viene de Compras) -->
@@ -1063,6 +1069,18 @@
       <!-- Producto encontrado en catalogo (preview) -->
       <div id="cpFoundBox" style="display:none"></div>
 
+      <!-- Inventario (siempre visible) -->
+      <div style="background:#e8f5e9;border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1.5px solid #a5d6a7">
+        <div style="font-size:0.8rem;font-weight:900;color:#1b5e20;margin-bottom:8px"><i class="ti ti-stack-2" aria-hidden="true"></i> Inventario</div>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Existencias</label>
+            <input type="number" class="form-control" id="cpExistencias" placeholder="1" min="1" step="1" value="1">
+            <div style="font-size:0.72rem;color:#888;margin-top:4px">Unidades de esta compra. Al vender, se descuenta 1. Cuando llega a 0 desaparece del catálogo.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Crear/Vincular: ahora se decide por busqueda. Campos siempre visibles si no hay vinculo -->
       <input type="checkbox" id="cpCrearCatalogo" checked style="display:none">
       <div id="cpCrearCatalogoWrap" style="display:none">
@@ -1097,14 +1115,6 @@
                 <option value="Unisex">Unisex</option>
               </select>
             </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Existencias</label>
-            <input type="number" class="form-control" id="cpExistencias" placeholder="1" min="1" step="1" value="1">
-            <div style="font-size:0.72rem;color:#888;margin-top:3px">Si hay más de 1 unidad, al vender 1 no desaparece del catálogo</div>
           </div>
         </div>
 
