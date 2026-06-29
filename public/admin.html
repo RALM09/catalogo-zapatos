@@ -794,6 +794,7 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
+    <div id="modalErrorBanner" style="display:none;background:#ffebee;border-radius:10px;padding:10px 14px;margin-bottom:12px;color:#c62828;font-weight:800;font-size:0.84rem;border:1.5px solid #ef9a9a"></div>
     <div class="form-actions">
       <button class="btn btn-gray" onclick="document.getElementById('productModal').classList.remove('open');document.body.style.overflow=''">Cancelar</button>
       <button class="btn btn-primary" id="saveBtn" onclick="saveProduct()"><i class="ti ti-check" aria-hidden="true"></i> Guardar</button>
@@ -991,6 +992,20 @@
       <!-- Producto encontrado en catalogo (preview) -->
       <div id="cpFoundBox" style="display:none"></div>
 
+      <!-- Buscador de producto existente en catalogo -->
+      <div id="cpBuscarWrap" style="background:#f0f7ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1.5px solid #cce0ff">
+        <div style="font-weight:800;font-size:0.82rem;color:#2d1b4e;margin-bottom:6px;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-search" aria-hidden="true"></i> ¿Ya existe en el catálogo? Buscalo aquí
+          <span style="font-weight:400;font-size:0.72rem;color:#888">por nombre, marca o código</span>
+        </div>
+        <div style="position:relative">
+          <input type="text" id="cpSearchExistente" class="form-control" placeholder="Ej: Adidas, zapato café, IH77..." oninput="filtrarProductosCatalogo()" onfocus="filtrarProductosCatalogo()" autocomplete="off" style="padding-right:36px">
+          <button id="cpSearchClearBtn" onclick="limpiarVinculoExistente()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#888;cursor:pointer;font-size:1.1rem;padding:0;line-height:1" aria-label="Limpiar">&#x2715;</button>
+        </div>
+        <div id="cpDropdownProductos" style="display:none;max-height:180px;overflow-y:auto;background:white;border:1.5px solid #cce0ff;border-radius:8px;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:10;position:relative"></div>
+        <div id="cpVinculadoCard" style="display:none;margin-top:8px"></div>
+      </div>
+
       <!-- Crear/Vincular toggle -->
       <div id="cpCrearCatalogoWrap" style="background:#f8f4ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div>
@@ -1030,6 +1045,14 @@
                 <option value="Unisex">Unisex</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Existencias</label>
+            <input type="number" class="form-control" id="cpExistencias" placeholder="1" min="1" step="1" value="1">
+            <div style="font-size:0.72rem;color:#888;margin-top:3px">Si hay más de 1 unidad, al vender 1 no desaparece del catálogo</div>
           </div>
         </div>
 
@@ -1312,7 +1335,7 @@ function populateModalSelects() {
     sel.innerHTML += '<option value="'+id+'">'+label+'</option>';
   });
   var ms = document.getElementById('fMarca');
-  ms.innerHTML = '<option value="">Selecciona una marca...</option>';
+  ms.innerHTML = '<option value="">Sin marca</option>';
   marcas.forEach(function(m){ ms.innerHTML += '<option value="'+m+'">'+m+'</option>'; });
   // Update marca label based on current section
   updateMarcaLabel();
@@ -1360,6 +1383,7 @@ function openProductModal() {
   document.getElementById('fCostoDirecto').value = '';
   document.getElementById('fGananciaDirecta').value = '';
   document.getElementById('fExistencias').value = '1';
+  hideModalError();
   document.getElementById('fCalcPrecioVenta').value = '';
   document.getElementById('fCalcComision').value = '';
   document.getElementById('fCalcHint').textContent = 'Llena estos dos campos y calculamos el costo y tu ganancia abajo';
@@ -1385,9 +1409,18 @@ function openEditModal(id) {
   document.getElementById('modalTitle').textContent = 'Editar producto';
   document.getElementById('fId').value = id;
   document.getElementById('fSeccion').value = p.seccion || '';
+  updateMarcaLabel();
   // Update marca label and Para field visibility AFTER setting seccion
   updateMarcaLabel();
-  document.getElementById('fMarca').value = p.marca || '';
+  // Set marca: if value doesn't stick (not in list), add it as option
+  var fMarcaEl = document.getElementById('fMarca');
+  fMarcaEl.value = p.marca || '';
+  if (p.marca && fMarcaEl.value !== p.marca) {
+    var opt = document.createElement('option');
+    opt.value = p.marca; opt.textContent = p.marca;
+    fMarcaEl.appendChild(opt);
+    fMarcaEl.value = p.marca;
+  }
   document.getElementById('fTalla').value = p.talla || '';
   document.getElementById('fCodigo').value = p.codigo || '';
   document.getElementById('fDescripcion').value = p.descripcion || '';
@@ -1556,20 +1589,23 @@ function calcularGananciaDirecta() {
 }
 
 // ---- SAVE PRODUCT ----
+function showModalError(msg) {
+  var b = document.getElementById('modalErrorBanner');
+  if (!b) return;
+  b.textContent = '⚠️ ' + msg;
+  b.style.display = 'block';
+  b.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function hideModalError() {
+  var b = document.getElementById('modalErrorBanner');
+  if (b) b.style.display = 'none';
+}
 async function saveProduct() {
+  hideModalError();
   var seccion = document.getElementById('fSeccion').value;
   var marca = document.getElementById('fMarca').value;
-  if (seccion === 'perfumes') {
-    var para = document.getElementById('fPara').value;
-    if (!para) { showToast('Selecciona si es para Dama, Caballero o Unisex', 'error'); return; }
-    // genero se guarda en campo dedicado, no en marca
-  } else if (seccion === 'otras' || seccion === 'ofertas') {
-    // marca is optional for otras marcas
-    if (!marca) marca = '';
-    // genero es opcional, se guarda en campo genero
-  } else if (!marca || marca === '') {
-    showToast('Selecciona una marca', 'error'); return;
-  }
+  // Marca es opcional para todos (existe opcion "Sin marca")
+  if (!marca) marca = '';
   var btn = document.getElementById('saveBtn');
   btn.innerHTML = '<span class="spinner"></span> Guardando...';
   btn.disabled = true;
@@ -2070,7 +2106,7 @@ async function saveCaja() {
     closeCajaModal();
     showToast('Caja guardada','success');
     await loadCompras();
-  } catch(e){showToast('Error: '+e.message,'error');}
+  } catch(e){console.error('[saveCompraProducto] error:',e);showToast('Error: '+e.message,'error');}
   finally{hideLoader();}
 }
 
@@ -2171,6 +2207,11 @@ async function openCompraProductoModal(facturaId, fpp, tc) {
   document.getElementById('cpImgPreviews').innerHTML = '';
   document.getElementById('cpPublicar').checked = false;
   document.getElementById('cpFoundBox').style.display='none';
+  document.getElementById('cpSearchExistente').value = '';
+  document.getElementById('cpSearchClearBtn').style.display = 'none';
+  document.getElementById('cpDropdownProductos').style.display = 'none';
+  document.getElementById('cpVinculadoCard').style.display = 'none';
+  document.getElementById('cpExistencias').value = '1';
   document.getElementById('cpVincularLabel').textContent='Crear este producto en el catalogo';
   document.getElementById('cpCrearCatalogoWrap').style.display = 'flex';
   document.getElementById('cpId').value='';
@@ -2372,35 +2413,82 @@ function cpRemoveImage(i) {
   renderCpPreviews();
 }
 
-function buscarProductoExistente() {
-  var codigo=document.getElementById('cpCodigo').value.trim().toUpperCase();
-  var found = codigo.length>=3 ? allProducts.find(function(p){return (p.codigo||'').toUpperCase()===codigo;}) : null;
-  cpProductoVinculado = found || null;
-  var box = document.getElementById('cpFoundBox');
-  var catalogoSection = document.getElementById('cpCatalogoFields');
-  var toggleWrap = document.getElementById('cpCrearCatalogoWrap');
-
-  if (found) {
-    var img = (found.imagenes && found.imagenes[0]) ? found.imagenes[0] : 'https://placehold.co/60x60/f4eeff/7b2ff7?text=?';
-    var estado = found.disponible
-      ? '<span style="color:#1b5e20;font-weight:700">Publicado</span>'
-      : '<span style="color:#888;font-weight:700">Oculto/Agotado</span>';
-    box.innerHTML =
-      '<div style="display:flex;gap:10px;align-items:center;background:#e8f5e9;border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1.5px solid #a5d6a7">'+
-        '<img src="'+img+'" style="width:48px;height:48px;object-fit:contain;background:white;border-radius:8px">'+
-        '<div style="flex:1">'+
-          '<div style="font-weight:900;font-size:0.85rem;color:#1b5e20">&#x2705; Producto encontrado en catálogo</div>'+
-          '<div style="font-size:0.78rem;color:#388e3c;margin-top:2px">'+(found.marca||'')+' '+(found.talla||'')+' &bull; '+found.seccion+' &bull; '+estado+'</div>'+
-        '</div>'+
+// ── Buscar por nombre / marca / codigo (parcial) ──────────────────────────
+function filtrarProductosCatalogo() {
+  var query = (document.getElementById('cpSearchExistente').value || '').trim().toLowerCase();
+  var dropdown = document.getElementById('cpDropdownProductos');
+  document.getElementById('cpSearchClearBtn').style.display = query ? 'block' : 'none';
+  if (query.length < 2) { dropdown.style.display = 'none'; return; }
+  var matches = allProducts.filter(function(p) {
+    return (p.nombre||'').toLowerCase().includes(query) ||
+           (p.codigo||'').toLowerCase().includes(query) ||
+           (p.marca||'').toLowerCase().includes(query) ||
+           (p.descripcion||'').toLowerCase().includes(query);
+  }).slice(0, 10);
+  dropdown.innerHTML = '';
+  if (!matches.length) {
+    dropdown.innerHTML = '<div style="padding:10px 12px;color:#888;font-size:0.82rem">No se encontraron productos</div>';
+    dropdown.style.display = 'block'; return;
+  }
+  matches.forEach(function(p) {
+    var img = (p.imagenes && p.imagenes[0]) ? p.imagenes[0] : '';
+    var item = document.createElement('div');
+    item.style.cssText = 'display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0f4ff;transition:background 0.1s';
+    item.innerHTML =
+      (img ? '<img src="'+img+'" style="width:36px;height:36px;object-fit:contain;background:#f9f5ff;border-radius:6px;flex-shrink:0">'
+           : '<div style="width:36px;height:36px;background:#f0eaff;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ti-shoe" style="color:#c4b5f5"></i></div>') +
+      '<div style="min-width:0">'+
+        '<div style="font-weight:800;font-size:0.82rem;color:#2d1b4e">'+(p.nombre||p.codigo||'Sin nombre')+(p.talla?' &bull; T'+p.talla:'')+'</div>'+
+        '<div style="font-size:0.74rem;color:#888">'+(p.marca||'')+((p.codigo)?' &bull; '+p.codigo:'')+'</div>'+
       '</div>';
-    box.style.display = 'block';
-    document.getElementById('cpVincularLabel').textContent = 'Vincular esta compra a este producto (no se modificara el producto)';
-    document.getElementById('cpCrearCatalogo').checked = true;
-    catalogoSection.style.display = 'none';
-  } else {
-    box.style.display = 'none';
-    document.getElementById('cpVincularLabel').textContent = 'Crear este producto en el catalogo';
-    catalogoSection.style.display = document.getElementById('cpCrearCatalogo').checked ? 'block' : 'none';
+    item.onmousedown = (function(prod){ return function(e){ e.preventDefault(); seleccionarProductoExistente(prod); }; })(p);
+    item.onmouseover = function(){ this.style.background='#f0f7ff'; };
+    item.onmouseout  = function(){ this.style.background=''; };
+    dropdown.appendChild(item);
+  });
+  dropdown.style.display = 'block';
+}
+
+function seleccionarProductoExistente(prod) {
+  cpProductoVinculado = prod;
+  document.getElementById('cpSearchExistente').value = (prod.nombre||prod.codigo||'') + (prod.talla?' T'+prod.talla:'');
+  document.getElementById('cpSearchClearBtn').style.display = 'block';
+  document.getElementById('cpDropdownProductos').style.display = 'none';
+  document.getElementById('cpFoundBox').style.display = 'none';
+  var img = (prod.imagenes && prod.imagenes[0]) ? prod.imagenes[0] : '';
+  document.getElementById('cpVinculadoCard').innerHTML =
+    '<div style="display:flex;gap:10px;align-items:center;background:#e8f5e9;border-radius:10px;padding:10px 12px;border:1.5px solid #a5d6a7">'+
+      (img?'<img src="'+img+'" style="width:44px;height:44px;object-fit:contain;background:white;border-radius:8px;flex-shrink:0">':'')+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:900;font-size:0.82rem;color:#1b5e20">&#x2705; Vinculado: '+(prod.nombre||prod.codigo)+(prod.talla?' T'+prod.talla:'')+'</div>'+
+        '<div style="font-size:0.74rem;color:#388e3c">'+(prod.marca||'')+((prod.codigo)?' &bull; '+prod.codigo:'')+'</div>'+
+      '</div></div>';
+  document.getElementById('cpVinculadoCard').style.display = 'block';
+  document.getElementById('cpCrearCatalogoWrap').style.display = 'none';
+  document.getElementById('cpCatalogoFields').style.display = 'none';
+}
+
+function limpiarVinculoExistente() {
+  cpProductoVinculado = null;
+  document.getElementById('cpSearchExistente').value = '';
+  document.getElementById('cpSearchClearBtn').style.display = 'none';
+  document.getElementById('cpDropdownProductos').style.display = 'none';
+  document.getElementById('cpVinculadoCard').style.display = 'none';
+  document.getElementById('cpFoundBox').style.display = 'none';
+  document.getElementById('cpCrearCatalogoWrap').style.display = 'flex';
+  document.getElementById('cpCatalogoFields').style.display = document.getElementById('cpCrearCatalogo').checked ? 'block' : 'none';
+}
+
+// ── Auto-match por codigo exacto ───────────────────────────────────────────
+function buscarProductoExistente() {
+  var codigo = document.getElementById('cpCodigo').value.trim().toUpperCase();
+  var found = codigo.length >= 3 ? allProducts.find(function(p){ return (p.codigo||'').toUpperCase() === codigo; }) : null;
+  if (found && !cpProductoVinculado) {
+    seleccionarProductoExistente(found);
+  } else if (!found && !cpProductoVinculado) {
+    document.getElementById('cpFoundBox').style.display = 'none';
+    document.getElementById('cpCrearCatalogoWrap').style.display = 'flex';
+    document.getElementById('cpCatalogoFields').style.display = document.getElementById('cpCrearCatalogo').checked ? 'block' : 'none';
   }
 }
 
@@ -2408,6 +2496,13 @@ document.getElementById('cpCrearCatalogo').onchange = function() {
   var showFields = this.checked && !cpProductoVinculado;
   document.getElementById('cpCatalogoFields').style.display = showFields ? 'block' : 'none';
 };
+
+// Cerrar dropdown al clic fuera
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('cpBuscarWrap');
+  var dd = document.getElementById('cpDropdownProductos');
+  if (wrap && dd && !wrap.contains(e.target)) dd.style.display = 'none';
+});
 
 async function saveCompraProducto() {
   var codigo=document.getElementById('cpCodigo').value.trim();
@@ -2420,6 +2515,7 @@ async function saveCompraProducto() {
   var precioVendFinal=parseFloat(document.getElementById('cpPrecioVendedorFinal').value)||Math.round(calc.precioVendedor);
   var facturaId=document.getElementById('cpFacturaId').value;
   var crearCatalogo=document.getElementById('cpCrearCatalogo').checked;
+  console.log('[saveCompraProducto] inicio - codigo:'+codigo+' precio:'+precio+' crearCatalogo:'+crearCatalogo+' vinculado:'+(cpProductoVinculado?cpProductoVinculado.id:'ninguno'));
   showLoader('Guardando producto...');
   try {
     var productoCatId=null;
@@ -2452,7 +2548,8 @@ async function saveCompraProducto() {
         imgUrls.unshift(cover);
       }
 
-      var catPayload={seccion:seccion,marca:marca,talla:talla,codigo:codigo,genero:genero,disponible:publicar,pendiente_llegada:!publicar,precio:'',imagenes:imgUrls};
+      var cpExist=parseInt(document.getElementById('cpExistencias').value)||1;
+      var catPayload={seccion:seccion,marca:marca,talla:talla,codigo:codigo,genero:genero,disponible:publicar,pendiente_llegada:!publicar,precio:'',imagenes:imgUrls,existencias:cpExist};
       var newProd=await db.from('productos').insert(catPayload).select().single();
       if (newProd.error) throw newProd.error;
       productoCatId=newProd.data.id;
@@ -2498,25 +2595,11 @@ async function editCompraProducto(id, facturaId) {
   // If this purchase is linked to a catalog product, show the found box
   if (p.producto_id) {
     var linked = allProducts.find(function(x){return x.id===p.producto_id;});
-    if (linked) {
-      cpProductoVinculado = linked;
-      var img = (linked.imagenes && linked.imagenes[0]) ? linked.imagenes[0] : 'https://placehold.co/60x60/f4eeff/7b2ff7?text=?';
-      var estado = linked.disponible ? '<span style="color:#1b5e20;font-weight:700">Publicado</span>' : '<span style="color:#888;font-weight:700">Oculto/Agotado</span>';
-      document.getElementById('cpFoundBox').innerHTML =
-        '<div style="display:flex;gap:10px;align-items:center;background:#e8f5e9;border-radius:12px;padding:10px 14px;margin-bottom:14px;border:1.5px solid #a5d6a7">'+
-          '<img src="'+img+'" style="width:48px;height:48px;object-fit:contain;background:white;border-radius:8px">'+
-          '<div style="flex:1">'+
-            '<div style="font-weight:900;font-size:0.85rem;color:#1b5e20">&#x2705; Vinculado al catalogo</div>'+
-            '<div style="font-size:0.78rem;color:#388e3c;margin-top:2px">'+(linked.marca||'')+' '+(linked.talla||'')+' &bull; '+linked.seccion+' &bull; '+estado+'</div>'+
-          '</div>'+
-        '</div>';
-      document.getElementById('cpFoundBox').style.display='block';
-      document.getElementById('cpVincularLabel').textContent='Vincular esta compra a este producto (no se modificara el producto)';
-      document.getElementById('cpCatalogoFields').style.display='none';
-    }
+    if (linked) { seleccionarProductoExistente(linked); }
   } else {
-    document.getElementById('cpCrearCatalogo').checked = false;
-    document.getElementById('cpCatalogoFields').style.display='none';
+    // Sin vinculo: mostrar campos para poder crear/editar en catalogo
+    document.getElementById('cpCrearCatalogo').checked = true;
+    document.getElementById('cpCatalogoFields').style.display='block';
     document.getElementById('cpVincularLabel').textContent='Crear este producto en el catalogo';
   }
   calcularCosto();
